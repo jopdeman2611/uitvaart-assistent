@@ -40,15 +40,18 @@ def haal_goedgekeurde_fotos_op(naam_dierbare):
         st.write("📩 Debug – API response:", response.text)
 
         if response.status_code == 200:
-            data = response.json()
-            return [foto["url"] for foto in data.get("fotos", [])]
-        else:
-            st.error(f"❌ Fout bij ophalen foto's: {response.status_code}")
-            st.text(response.text)
-            return []
-    except Exception as e:
-        st.error(f"⚠️ Er ging iets mis: {e}")
+    data = response.json()
+    # Base44 stuurt de goedgekeurde foto's onder de sleutel 'goedgekeurde_fotos'
+    if "goedgekeurde_fotos" in data:
+        return data["goedgekeurde_fotos"]
+    else:
+        st.warning("⚠️ Geen 'goedgekeurde_fotos' veld gevonden in de API-response.")
         return []
+else:
+    st.error(f"❌ Fout bij ophalen foto's: {response.status_code}")
+    st.text(response.text)
+    return []
+
 
 
 # --- TITEL EN INTRO ---
