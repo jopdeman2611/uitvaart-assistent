@@ -112,3 +112,24 @@ if st.button("💛 Maak de presentatie"):
 
             except Exception as e:
                 st.error(f"Er ging iets mis: {e}")
+
+st.header("📸 Goedgekeurde foto's van Base44")
+
+# Vraag de eerbetoon-ID op uit de URL (bijv. ...?eerbetoon=123)
+query_params = st.query_params
+eerbetoon_id = query_params.get("eerbetoon", ["onbekend"])[0]
+
+if eerbetoon_id == "onbekend":
+    st.warning("⚠️ Geen eerbetoon-ID gevonden in de URL.")
+else:
+    fotos = haal_goedgekeurde_fotos_op(eerbetoon_id)
+
+    if fotos:
+        st.success(f"✅ {len(fotos)} foto’s gevonden voor eerbetoon-ID: {eerbetoon_id}")
+        cols = st.columns(3)
+        for i, foto_url in enumerate(fotos):
+            with cols[i % 3]:
+                st.image(foto_url, use_container_width=True)
+    else:
+        st.info("ℹ️ Er zijn nog geen goedgekeurde foto’s beschikbaar.")
+
