@@ -1,32 +1,27 @@
 import os
 import streamlit as st
+import requests
+from dotenv import load_dotenv
+from scripts.maak_presentatie import maak_presentatie_automatisch
 
+# Laad .env-bestand
+load_dotenv()
+
+# Base44 API-configuratie
+STREAMLIT_API_KEY = st.secrets.get("STREAMLIT_API_KEY", None) or os.getenv("STREAMLIT_API_KEY")
+BASE44_API_URL = "https://base44.app/api/fotos/goedgekeurd"
+
+# Controleer of de sleutel beschikbaar is
 if not STREAMLIT_API_KEY:
     st.error("❌ Geen API-sleutel gevonden. Controleer de Streamlit secrets-configuratie.")
 else:
     st.success("🔒 Verbinding met Base44 beveiligd actief.")
 
 
-import streamlit as st
-import os
-import requests
-from dotenv import load_dotenv
-
-# Laad .env-bestand
-load_dotenv()
-
-# Base44 API-configuratie
-BASE44_API_KEY = os.getenv("STREAMLIT_API_KEY")
-BASE44_API_URL = "https://base44.app/api/fotos/goedgekeurd"
-
-import streamlit as st
-import os
-from scripts.maak_presentatie import maak_presentatie_automatisch
-
 def haal_goedgekeurde_fotos_op(eerbetoon_id):
     """Vraagt goedgekeurde foto's op uit Base44 voor het opgegeven eerbetoon."""
     try:
-        headers = {"Authorization": f"Bearer {BASE44_API_KEY}"}
+        headers = {"Authorization": f"Bearer {STREAMLIT_API_KEY}"}
         response = requests.get(f"{BASE44_API_URL}?eerbetoon_id={eerbetoon_id}", headers=headers)
 
         if response.status_code == 200:
