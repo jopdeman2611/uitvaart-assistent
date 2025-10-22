@@ -29,29 +29,31 @@ def haal_goedgekeurde_fotos_op(naam_dierbare):
             "X-API-Key": STREAMLIT_API_KEY,
             "Content-Type": "application/json"
         }
-
         payload = {"naam_dierbare": naam_dierbare}
 
-        st.write("📦 Debug – payload die naar Base44 gestuurd wordt:", payload)
+        st.write("🧾 Debug – payload die naar Base44 gestuurd wordt:", payload)
 
         response = requests.post(BASE44_API_URL, json=payload, headers=headers)
 
         st.write("📬 Debug – API statuscode:", response.status_code)
-        st.write("📩 Debug – API response:", response.text)
+        st.write("📜 Debug – API response:", response.text)
 
-if response.status_code == 200:
-    data = response.json()
-    # Base44 stuurt de goedgekeurde foto's onder de sleutel 'goedgekeurde_fotos'
-    if "goedgekeurde_fotos" in data:
-        return data["goedgekeurde_fotos"]
-    else:
-        st.warning("⚠️ Geen 'goedgekeurde_fotos' veld gevonden in de API-response.")
+        if response.status_code == 200:
+            data = response.json()
+            # Base44 stuurt de goedgekeurde foto's onder de sleutel 'goedgekeurde_fotos'
+            if "goedgekeurde_fotos" in data:
+                return data["goedgekeurde_fotos"]
+            else:
+                st.warning("⚠️ Geen 'goedgekeurde_fotos' veld gevonden in de API-response.")
+                return []
+        else:
+            st.error(f"❌ Fout bij ophalen foto's: {response.status_code}")
+            st.text(response.text)
+            return []
+
+    except Exception as e:
+        st.error(f"⚠️ Er ging iets mis: {e}")
         return []
-else:
-    st.error(f"❌ Fout bij ophalen foto's: {response.status_code}")
-    st.text(response.text)
-    return []
-
 
 
 # --- TITEL EN INTRO ---
