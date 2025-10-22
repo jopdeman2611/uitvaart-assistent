@@ -1,6 +1,39 @@
+import os
+import streamlit as st
+
+st.write("🔐 STREAMLIT_API_KEY =", os.getenv("STREAMLIT_API_KEY"))
+
+import streamlit as st
+import os
+import requests
+from dotenv import load_dotenv
+
+# Laad .env-bestand
+load_dotenv()
+
+# Base44 API-configuratie
+BASE44_API_KEY = os.getenv("STREAMLIT_API_KEY")
+BASE44_API_URL = "https://base44.app/api/fotos/goedgekeurd"
+
 import streamlit as st
 import os
 from scripts.maak_presentatie import maak_presentatie_automatisch
+
+def haal_goedgekeurde_fotos_op(eerbetoon_id):
+    """Vraagt goedgekeurde foto's op uit Base44 voor het opgegeven eerbetoon."""
+    try:
+        headers = {"Authorization": f"Bearer {BASE44_API_KEY}"}
+        response = requests.get(f"{BASE44_API_URL}?eerbetoon_id={eerbetoon_id}", headers=headers)
+
+        if response.status_code == 200:
+            data = response.json()
+            return [foto["url"] for foto in data]
+        else:
+            st.error(f"❌ Fout bij ophalen foto's: {response.status_code}")
+            return []
+    except Exception as e:
+        st.error(f"⚠️ Er ging iets mis: {e}")
+        return []
 
 st.set_page_config(page_title="Warme Uitvaartassistent", page_icon="🌿", layout="centered")
 
@@ -46,17 +79,19 @@ st.divider()
 
 # --- 4. Knop om presentatie te maken ---
 if st.button("💛 Maak de presentatie"):
-    if not uploaded_files or not naam:
-        st.error("Voeg ten minste één foto toe en vul de naam in.")
-    else:
-        with st.spinner("Een moment alstublieft... ik stel de presentatie zorgvuldig samen 🌿"):
-            upload_paths = []
-            os.makedirs("uploads", exist_ok=True)
-            for file in uploaded_files:
-                path = os.path.join("uploads", file.name)
-                with open(path, "wb") as f:
-                    f.write(file.getbuffer())
-                upload_paths.append(path)
+    with st.spinner("Een moment alstublieft... ik stel de presentatie zorgvuldig samen 🌿"):
+        # Hier komt straks automatisch het juiste eerbetoon_id
+        eerbetoon_id = 123  
+
+        fotos = haal_goedgekeurde_fotos_op(eerbetoon_id)
+
+        if fotos:
+            st.success(f"✅ {len(fotos)} goedgekeurde foto's opgehaald uit Base44!")
+            for foto in fotos:
+                st.image(foto, width=200)
+        else:
+            st.warning("Er zijn nog geen goedgekeurde foto's gevonden.")
+
 
             try:
                 result_path = maak_presentatie_automatisch(
