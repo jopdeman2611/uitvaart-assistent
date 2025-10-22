@@ -119,7 +119,7 @@ if naam_dierbare == "onbekend":
 else:
     fotos = haal_goedgekeurde_fotos_op(naam_dierbare)
 
-    if fotos:
+if fotos:
     st.success(f"✅ {len(fotos)} foto’s gevonden voor eerbetoon-ID: {naam_dierbare}")
     cols = st.columns(3)
 
