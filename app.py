@@ -87,8 +87,7 @@ uploaded_files = st.file_uploader(
 st.divider()
 
 # --- 4. URL-PARAMETER (Base44) ---
-# --- 4. URL-PARAMETER (Base44) ---
-query_params = st.experimental_get_query_params()
+query_params = st.query_params
 naam_dierbare = query_params.get("eerbetoon", ["onbekend"])[0]
 
 st.write("🔍 Debug – ontvangen eerbetoon parameter:", naam_dierbare)
