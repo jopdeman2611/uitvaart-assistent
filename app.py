@@ -26,7 +26,7 @@ def haal_goedgekeurde_fotos_op(naam_dierbare):
     """Vraagt goedgekeurde foto's op uit Base44 via POST-request."""
     try:
         headers = {
-            "Authorization": f"Bearer {STREAMLIT_API_KEY}",
+            "X-API-Key": STREAMLIT_API_KEY,
             "Content-Type": "application/json"
         }
         payload = {"naam_dierbare": naam_dierbare}
