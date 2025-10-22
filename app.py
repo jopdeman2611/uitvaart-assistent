@@ -1,7 +1,11 @@
 import os
 import streamlit as st
 
-st.write("🔐 STREAMLIT_API_KEY =", os.getenv("STREAMLIT_API_KEY"))
+if not STREAMLIT_API_KEY:
+    st.error("❌ Geen API-sleutel gevonden. Controleer de Streamlit secrets-configuratie.")
+else:
+    st.success("🔒 Verbinding met Base44 beveiligd actief.")
+
 
 import streamlit as st
 import os
