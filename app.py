@@ -39,7 +39,7 @@ def haal_goedgekeurde_fotos_op(naam_dierbare):
         st.write("📬 Debug – API statuscode:", response.status_code)
         st.write("📩 Debug – API response:", response.text)
 
-        if response.status_code == 200:
+if response.status_code == 200:
     data = response.json()
     # Base44 stuurt de goedgekeurde foto's onder de sleutel 'goedgekeurde_fotos'
     if "goedgekeurde_fotos" in data:
