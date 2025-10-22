@@ -29,9 +29,15 @@ def haal_goedgekeurde_fotos_op(naam_dierbare):
             "X-API-Key": STREAMLIT_API_KEY,
             "Content-Type": "application/json"
         }
+
         payload = {"naam_dierbare": naam_dierbare}
 
+        st.write("📦 Debug – payload die naar Base44 gestuurd wordt:", payload)
+
         response = requests.post(BASE44_API_URL, json=payload, headers=headers)
+
+        st.write("📬 Debug – API statuscode:", response.status_code)
+        st.write("📩 Debug – API response:", response.text)
 
         if response.status_code == 200:
             data = response.json()
