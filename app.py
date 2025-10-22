@@ -87,8 +87,11 @@ uploaded_files = st.file_uploader(
 st.divider()
 
 # --- 4. URL-PARAMETER (Base44) ---
+import urllib.parse
+
 query_params = st.query_params
-naam_dierbare = query_params.get("eerbetoon", ["onbekend"])[0]
+naam_dierbare_raw = query_params.get("eerbetoon", ["onbekend"])[0]
+naam_dierbare = urllib.parse.unquote(naam_dierbare_raw)  # decodeert %20 naar spaties
 
 st.write("🔍 Debug – ontvangen eerbetoon parameter:", naam_dierbare)
 
