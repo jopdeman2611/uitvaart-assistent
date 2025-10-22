@@ -120,13 +120,15 @@ else:
     fotos = haal_goedgekeurde_fotos_op(naam_dierbare)
 
     if fotos:
-        st.success(f"✅ {len(fotos)} goedgekeurde foto’s gevonden voor {naam_dierbare}.")
-        cols = st.columns(3)
-        for i, foto_url in enumerate(fotos):
-            with cols[i % 3]:
-                st.image(foto_url, use_container_width=True)
-    else:
-        st.info("ℹ️ Er zijn nog geen goedgekeurde foto’s beschikbaar.")
+    st.success(f"✅ {len(fotos)} foto’s gevonden voor eerbetoon-ID: {naam_dierbare}")
+    cols = st.columns(3)
+
+    for i, foto_url in enumerate(fotos):
+        with cols[i % 3]:
+            st.image(foto_url, width="stretch")  # vervangt use_container_width
+else:
+    st.info("ℹ️ Er zijn nog geen goedgekeurde foto’s beschikbaar.")
+
 
 st.divider()
 
