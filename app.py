@@ -90,8 +90,14 @@ st.divider()
 import urllib.parse
 
 query_params = st.query_params
-naam_dierbare_raw = query_params.get("eerbetoon", ["onbekend"])[0]
-naam_dierbare = urllib.parse.unquote(naam_dierbare_raw)  # decodeert %20 naar spaties
+eerbetoon_values = query_params.get("eerbetoon", ["onbekend"])
+
+if isinstance(eerbetoon_values, list):
+    naam_dierbare_raw = "".join(eerbetoon_values)  # combineer losse letters tot één string
+else:
+    naam_dierbare_raw = eerbetoon_values
+
+naam_dierbare = urllib.parse.unquote(naam_dierbare_raw)
 
 st.write("🔍 Debug – ontvangen eerbetoon parameter:", naam_dierbare)
 
