@@ -448,6 +448,7 @@ def maak_presentatie_automatisch(
         output_path = os.path.join(base_dir, uitvoer_pad)
         prs.save(output_path)
         print(f"Presentatie opgeslagen als: {output_path}")
+	print("✅ Functie klaar, pad geretourneerd:", output_path)
         return output_path
 
     finally:
