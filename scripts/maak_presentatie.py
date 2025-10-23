@@ -284,8 +284,8 @@ def maak_presentatie_automatisch(
         output_path = os.path.join(base_dir, uitvoer_pad)
         prs.save(output_path)
 
-        st.success(f"✅ Presentatie opgeslagen als: {output_path}")
         print(f"✅ Presentatie opgeslagen als: {output_path}")
+        # Geen visuele melding met pad voor gebruiker
 
         return output_path
 
