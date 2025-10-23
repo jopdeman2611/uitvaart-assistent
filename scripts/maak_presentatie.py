@@ -39,13 +39,11 @@ def download_base44_fotos(foto_urls: list[str], tmp_dir: str) -> list[str]:
     """Download Base44-foto's met retries en foutafhandeling."""
     import time
     paden = []
-    print("🪶 Debug: start downloaden van Base44-foto’s...")
 
     for i, url in enumerate(foto_urls, start=1):
         success = False
         for attempt in range(3):
             try:
-                print(f"➡️ Download poging {i} (poging {attempt+1}/3):", url)
                 r = requests.get(url, timeout=15)
                 if r.status_code == 200:
                     ext = ".jpg"
@@ -55,20 +53,14 @@ def download_base44_fotos(foto_urls: list[str], tmp_dir: str) -> list[str]:
                     pad = os.path.join(tmp_dir, f"base44_foto_{i}{ext}")
                     with open(pad, "wb") as f:
                         f.write(r.content)
-                    print(f"✅ Foto {i} opgeslagen als:", pad)
                     paden.append(pad)
                     success = True
                     break
-                else:
-                    print(f"⚠️ Foto {i}: status {r.status_code}, probeer opnieuw...")
-            except Exception as e:
-                print(f"❌ Fout bij foto {i} (poging {attempt+1}):", e)
+            except Exception:
+                pass
             time.sleep(1)
-
         if not success:
-            print(f"🚫 Foto {i} kon niet worden gedownload na 3 pogingen.")
-
-    print(f"✅ In totaal {len(paden)} foto's succesvol gedownload.")
+            print(f"⚠️ Kon foto {i} niet downloaden na 3 pogingen.")
     return paden
 
 
@@ -288,24 +280,18 @@ def maak_presentatie_automatisch(
 
         vervang_placeholder_fotos(prs, fotopaden, ratio_mode=ratio_mode, repeat_if_insufficient=repeat_if_insufficient)
 
-        placeholders = _collect_named_placeholders(prs)
-        print("DEBUG: Gevonden placeholders in sjabloon:")
-        st.write("🧭 DEBUG: Gevonden placeholders in sjabloon:")
-        for idx, sh in enumerate(placeholders, start=1):
-            print(f" - naam: foto_{idx}, shape_type: {getattr(sh, 'shape_type', 'onbekend')}")
-            st.write(f"• Naam: foto_{idx}, type: {getattr(sh, 'shape_type', 'onbekend')}")
-
         base_dir = os.path.dirname(__file__) if "__file__" in globals() else os.getcwd()
         output_path = os.path.join(base_dir, uitvoer_pad)
         prs.save(output_path)
-        print(f"✅ Presentatie opgeslagen als: {output_path}")
+
         st.success(f"✅ Presentatie opgeslagen als: {output_path}")
+        print(f"✅ Presentatie opgeslagen als: {output_path}")
 
         return output_path
 
     except Exception as e:
-        print(f"❌ Fout bij genereren of opslaan van de presentatie: {e}")
         st.error(f"❌ Fout bij genereren of opslaan van de presentatie: {e}")
+        print(f"❌ Fout bij genereren of opslaan van de presentatie: {e}")
 
     finally:
         shutil.rmtree(tmp_dir, ignore_errors=True)
