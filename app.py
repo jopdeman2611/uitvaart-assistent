@@ -1,4 +1,5 @@
 import os
+import urllib.parse
 import streamlit as st
 import requests
 from dotenv import load_dotenv
@@ -20,45 +21,29 @@ if not STREAMLIT_API_KEY:
 else:
     st.success("🔒 Verbinding met Base44 beveiligd actief.")
 
-
 # --- FUNCTIE: FOTO'S OPHALEN ---
 def haal_goedgekeurde_fotos_op(naam_dierbare):
     """Vraagt goedgekeurde foto's op uit Base44 via POST-request."""
     try:
-        headers = {
-            "X-API-Key": STREAMLIT_API_KEY,
-            "Content-Type": "application/json"
-        }
+        headers = {"X-API-Key": STREAMLIT_API_KEY, "Content-Type": "application/json"}
         payload = {"naam_dierbare": naam_dierbare}
-
-        st.write("🧾 Debug – payload die naar Base44 gestuurd wordt:", payload)
-
         response = requests.post(BASE44_API_URL, json=payload, headers=headers)
-
-        st.write("📬 Debug – API statuscode:", response.status_code)
-        st.write("📜 Debug – API response:", response.text)
-
         if response.status_code == 200:
             data = response.json()
-            # Base44 stuurt de goedgekeurde foto's onder de sleutel 'goedgekeurde_fotos'
-            if "goedgekeurde_fotos" in data:
+            if data.get("success") and "goedgekeurde_fotos" in data:
                 return data["goedgekeurde_fotos"]
             else:
-                st.warning("⚠️ Geen 'goedgekeurde_fotos' veld gevonden in de API-response.")
                 return []
         else:
-            st.error(f"❌ Fout bij ophalen foto's: {response.status_code}")
-            st.text(response.text)
+            st.error(f"❌ Fout bij ophalen foto's ({response.status_code})")
             return []
-
     except Exception as e:
         st.error(f"⚠️ Er ging iets mis: {e}")
         return []
 
-
-# --- TITEL EN INTRO ---
+# --- TITEL & INTRO ---
 st.title("🌿 Warme Uitvaartassistent")
-st.write("Ik help u graag bij het samenstellen van een rustige, liefdevolle presentatie.")
+st.write("Ik help u graag bij het samenstellen van een warme en liefdevolle presentatie.")
 
 st.divider()
 
@@ -71,12 +56,8 @@ zin = st.text_input("Korte zin of motto (optioneel)")
 st.divider()
 
 # --- 2. SFEERKEUZE ---
-st.write("Kies de sfeer die het beste past bij de persoon of het afscheid.")
-sfeer = st.radio(
-    "Welke sfeer wilt u graag uitstralen?",
-    ["Rustig", "Bloemrijk", "Modern"],
-    horizontal=True
-)
+st.subheader("Kies de sfeer die past bij het afscheid")
+sfeer = st.radio("Sfeer", ["Rustig", "Bloemrijk", "Modern"], horizontal=True)
 
 # Koppel sferen aan sjablonen
 sjabloon_map = {
@@ -88,57 +69,48 @@ sjabloon_pad = sjabloon_map[sfeer]
 
 st.divider()
 
-# --- 3. FOTO-UPLOAD ---
+# --- 3. FOTO-UPLOAD (optioneel) ---
 uploaded_files = st.file_uploader(
-    "Upload de foto's (los of als ZIP)",
+    "Upload extra foto's (optioneel, los of ZIP)",
     type=["jpg", "jpeg", "png", "zip"],
     accept_multiple_files=True
 )
 
-st.divider()
-
-# --- 4. URL-PARAMETER (Base44) ---
-import urllib.parse
-
+# --- 4. BASE44 KOPPELING VIA URL ---
 query_params = st.query_params
 eerbetoon_values = query_params.get("eerbetoon", ["onbekend"])
+naam_dierbare = urllib.parse.unquote("".join(eerbetoon_values)) if isinstance(eerbetoon_values, list) else eerbetoon_values
 
-if isinstance(eerbetoon_values, list):
-    naam_dierbare_raw = "".join(eerbetoon_values)  # combineer losse letters tot één string
-else:
-    naam_dierbare_raw = eerbetoon_values
+st.write("🔍 Eerbetoon-parameter:", naam_dierbare)
 
-naam_dierbare = urllib.parse.unquote(naam_dierbare_raw)
+st.divider()
+st.subheader("📸 Goedgekeurde foto's van Base44")
 
-st.write("🔍 Debug – ontvangen eerbetoon parameter:", naam_dierbare)
-
-st.header("📸 Goedgekeurde foto's van Base44")
-
-if naam_dierbare == "onbekend":
-    st.warning("⚠️ Geen naam van dierbare gevonden in de URL.")
-else:
+fotos = []
+if naam_dierbare != "onbekend":
     fotos = haal_goedgekeurde_fotos_op(naam_dierbare)
 
 if fotos:
-    st.success(f"✅ {len(fotos)} foto’s gevonden voor eerbetoon-ID: {naam_dierbare}")
+    st.success(f"✅ {len(fotos)} goedgekeurde foto's gevonden.")
     cols = st.columns(3)
-
     for i, foto_url in enumerate(fotos):
         with cols[i % 3]:
-            st.image(foto_url, width="stretch")  # vervangt use_container_width
+            st.image(foto_url, use_container_width=True)
 else:
-    st.info("ℹ️ Er zijn nog geen goedgekeurde foto’s beschikbaar.")
-
+    st.info("ℹ️ Er zijn nog geen goedgekeurde foto's beschikbaar of de naam ontbreekt.")
 
 st.divider()
 
-# --- 5. KNOP OM PRESENTATIE TE MAKEN ---
-if st.button("💛 Maak de presentatie"):
-    with st.spinner("Een moment alstublieft... ik stel de presentatie zorgvuldig samen 🌿"):
+# --- 5. PRESENTATIE GENEREREN ---
+st.header("💛 Automatische presentatie")
 
+if st.button("🕊️ Maak de presentatie"):
+    with st.spinner("De presentatie wordt zorgvuldig samengesteld... even geduld 🌿"):
         try:
-            # Combineer lokale uploads met Base44-foto’s
+            # Combineer Base44-URL's en lokale uploads (optioneel)
+            base44_urls = fotos
             upload_paths = []
+
             if uploaded_files:
                 for file in uploaded_files:
                     temp_path = f"temp_{file.name}"
@@ -146,27 +118,32 @@ if st.button("💛 Maak de presentatie"):
                         f.write(file.getbuffer())
                     upload_paths.append(temp_path)
 
-            # Voeg Base44-foto’s toe (indien aanwezig)
-            fotos = haal_goedgekeurde_fotos_op(naam_dierbare)
-            upload_paths.extend(fotos)
-
-            # Maak de presentatie
+            # Bouw presentatie via nieuwe generator
             result_path = maak_presentatie_automatisch(
-                sjabloon_pad,
-                upload_bestanden=upload_paths,
+                sjabloon_pad=sjabloon_pad,
+                base44_foto_urls=base44_urls,
+                upload_bestanden=upload_paths if upload_paths else None,
                 titel_naam=naam,
                 titel_datums=f"{geboorte} – {overlijden}" if geboorte and overlijden else None,
                 titel_bijzin=zin,
+                ratio_mode="cover",
+                repeat_if_insufficient=True
             )
 
-            st.success("💛 De presentatie is klaar!")
+            st.success("✅ De presentatie is klaar!")
             with open(result_path, "rb") as f:
                 st.download_button(
-                    label="📥 Download presentatie",
+                    label="📥 Download de presentatie (PPTX)",
                     data=f,
-                    file_name="uitvaart_presentatie_resultaat.pptx",
+                    file_name="warme_uitvaart_presentatie.pptx",
                     mime="application/vnd.openxmlformats-officedocument.presentationml.presentation"
                 )
 
+            # Voorbeeldweergave
+            st.subheader("📷 Voorbeeldweergave")
+            for i, foto_url in enumerate(base44_urls[:6]):
+                st.image(foto_url, width=400)
+            st.caption("Dit is een indruk van de foto's in de presentatie.")
+
         except Exception as e:
-            st.error(f"Er ging iets mis: {e}")
+            st.error(f"❌ Er ging iets mis bij het maken van de presentatie: {e}")
