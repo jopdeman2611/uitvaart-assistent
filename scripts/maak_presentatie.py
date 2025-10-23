@@ -21,6 +21,7 @@ import zipfile
 import tempfile
 import shutil
 import requests
+import streamlit as st
 
 from pptx import Presentation
 from pptx.enum.shapes import MSO_SHAPE_TYPE
@@ -443,13 +444,23 @@ def maak_presentatie_automatisch(
             repeat_if_insufficient=repeat_if_insufficient
         )
 
-        # 🔍 Debug: toon hoeveel placeholders zijn gevonden
-        placeholders = _collect_named_placeholders(prs)
-        print("DEBUG: Gevonden placeholders in sjabloon:")
-        for idx, sh in placeholders:
-           print(f" - naam: foto_{idx}, shape_type: {getattr(sh, 'shape_type', 'onbekend')}")
-        if not placeholders:
-           print("⚠️ Geen placeholders met naam foto_x gevonden in sjabloon!")
+# 🧭 Debug: toon hoeveel placeholders zijn gevonden
+try:
+    placeholders = _collect_named_placeholders(prs)
+    print("DEBUG: Gevonden placeholders in sjabloon:")
+    st.write("🧭 DEBUG: Gevonden placeholders in sjabloon:")
+
+    for idx, sh in enumerate(placeholders, start=1):
+        print(f" - naam: foto_{idx}, shape_type: {getattr(sh, 'shape_type', 'onbekend')}")
+        st.write(f"• Naam: foto_{idx}, type: {getattr(sh, 'shape_type', 'onbekend')}")
+
+    if not placeholders:
+        print("⚠️ Geen placeholders met naam foto_x gevonden in sjabloon!")
+        st.warning("⚠️ Geen placeholders met naam foto_x gevonden in sjabloon!")
+
+except Exception as e:
+    print(f"❌ Fout bij debuggen van placeholders: {e}")
+    st.error(f"❌ Fout bij debuggen van placeholders: {e}")
 
 
 
