@@ -444,32 +444,40 @@ def maak_presentatie_automatisch(
             repeat_if_insufficient=repeat_if_insufficient
         )
 
-    # 🧭 Debug: toon placeholders in sjabloon
-    try:
-        placeholders = _collect_named_placeholders(prs)
-        print("DEBUG: Gevonden placeholders in sjabloon:")
-        st.write("🧭 DEBUG: Gevonden placeholders in sjabloon:")
+        # 4) Vervang placeholders op naam (met herhalen indien nodig)
+        vervang_placeholder_fotos(
+            prs,
+            fotopaden,
+            ratio_mode=ratio_mode,
+            repeat_if_insufficient=repeat_if_insufficient
+        )
 
-        for idx, sh in enumerate(placeholders, start=1):
-            print(f" - naam: foto_{idx}, shape_type: {getattr(sh, 'shape_type', 'onbekend')}")
-            st.write(f"• Naam: foto_{idx}, type: {getattr(sh, 'shape_type', 'onbekend')}")
+        # 🧭 Debug: toon placeholders in sjabloon
+        try:
+            placeholders = _collect_named_placeholders(prs)
+            print("DEBUG: Gevonden placeholders in sjabloon:")
+            st.write("🧭 DEBUG: Gevonden placeholders in sjabloon:")
 
-        if not placeholders:
-            print("⚠️ Geen placeholders met naam foto_x gevonden in sjabloon!")
-            st.warning("⚠️ Geen placeholders met naam foto_x gevonden in sjabloon!")
+            for idx, sh in enumerate(placeholders, start=1):
+                print(f" - naam: foto_{idx}, shape_type: {getattr(sh, 'shape_type', 'onbekend')}")
+                st.write(f"• Naam: foto_{idx}, type: {getattr(sh, 'shape_type', 'onbekend')}")
 
-    except Exception as e:
-        print(f"❌ Fout bij debuggen van placeholders: {e}")
-        st.error(f"❌ Fout bij debuggen van placeholders: {e}")
+            if not placeholders:
+                print("⚠️ Geen placeholders met naam foto_x gevonden in sjabloon!")
+                st.warning("⚠️ Geen placeholders met naam foto_x gevonden in sjabloon!")
 
-    # 5) Opslaan
-    base_dir = os.path.dirname(__file__) if "__file__" in globals() else os.getcwd()
-    output_path = os.path.join(base_dir, uitvoer_pad)
-    prs.save(output_path)
-    print(f"Presentatie opgeslagen als: {output_path}")
-    print("✅ Functie klaar, pad geretourneerd:", output_path)
-    return output_path
+        except Exception as e:
+            print(f"❌ Fout bij debuggen van placeholders: {e}")
+            st.error(f"❌ Fout bij debuggen van placeholders: {e}")
 
-finally:
-    shutil.rmtree(tmp_dir, ignore_errors=True)
-    print("Tijdelijke bestanden verwijderd.")
+        # 5) Opslaan
+        base_dir = os.path.dirname(__file__) if "__file__" in globals() else os.getcwd()
+        output_path = os.path.join(base_dir, uitvoer_pad)
+        prs.save(output_path)
+        print(f"Presentatie opgeslagen als: {output_path}")
+        print("✅ Functie klaar, pad geretourneerd:", output_path)
+        return output_path
+
+    finally:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+        print("Tijdelijke bestanden verwijderd.")
