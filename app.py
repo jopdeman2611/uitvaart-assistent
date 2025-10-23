@@ -117,12 +117,14 @@ if st.button("🕊️ Maak de presentatie"):
             st.write("📸 Aantal Base44-foto’s:", len(fotos))
             st.write("📤 Aantal geüploade bestanden:", len(uploaded_files) if uploaded_files else 0)
 
-            # controleer of er überhaupt foto's zijn
             if not fotos and not uploaded_files:
                 st.error("❌ Er zijn geen foto's gevonden om te gebruiken. Controleer Base44 of upload handmatig.")
             else:
                 base44_urls = fotos or []
                 upload_paths = []
+
+                # Debug log
+                st.write("📥 Begin met downloaden/verwerken Base44-foto's...")
 
                 if uploaded_files:
                     for file in uploaded_files:
@@ -133,6 +135,7 @@ if st.button("🕊️ Maak de presentatie"):
 
                 st.write("🧩 Foto’s klaar, nu presentatie aanmaken...")
 
+                # 👉 Hier debuggen we het resultaatpad
                 result_path = maak_presentatie_automatisch(
                     sjabloon_pad=sjabloon_pad,
                     base44_foto_urls=base44_urls,
@@ -144,16 +147,21 @@ if st.button("🕊️ Maak de presentatie"):
                     repeat_if_insufficient=True
                 )
 
-                st.success("✅ De presentatie is klaar!")
-                st.write("📁 Bestandslocatie:", result_path)
+                st.write("📦 Debug – ontvangen result_path:", result_path)
 
-                with open(result_path, "rb") as f:
-                    st.download_button(
-                        label="📥 Download de presentatie (PPTX)",
-                        data=f,
-                        file_name="warme_uitvaart_presentatie.pptx",
-                        mime="application/vnd.openxmlformats-officedocument.presentationml.presentation"
-                    )
+                if not result_path or not os.path.exists(result_path):
+                    st.error("❌ De presentatie kon niet worden opgeslagen of het pad is ongeldig.")
+                else:
+                    st.success("✅ De presentatie is klaar!")
+                    st.write("📁 Bestandslocatie:", result_path)
+
+                    with open(result_path, "rb") as f:
+                        st.download_button(
+                            label="📥 Download de presentatie (PPTX)",
+                            data=f,
+                            file_name="warme_uitvaart_presentatie.pptx",
+                            mime="application/vnd.openxmlformats-officedocument.presentationml.presentation"
+                        )
 
         except Exception as e:
             import traceback
