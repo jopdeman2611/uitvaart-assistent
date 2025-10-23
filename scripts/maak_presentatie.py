@@ -453,7 +453,7 @@ def maak_presentatie_automatisch(
         )
 
     # 🧭 Debug: toon placeholders in sjabloon
-   try:
+    try:
         placeholders = _collect_named_placeholders(prs)
         print("DEBUG: Gevonden placeholders in sjabloon:")
         st.write("🧭 DEBUG: Gevonden placeholders in sjabloon:")
@@ -470,7 +470,7 @@ def maak_presentatie_automatisch(
         print(f"❌ Fout bij debuggen van placeholders: {e}")
         st.error(f"❌ Fout bij debuggen van placeholders: {e}")
 
-    # 5️⃣ Opslaan
+    # 5️⃣ Opslaan en opruimen
     try:
         base_dir = os.path.dirname(__file__) if "__file__" in globals() else os.getcwd()
         output_path = os.path.join(base_dir, uitvoer_pad)
@@ -486,3 +486,4 @@ def maak_presentatie_automatisch(
     finally:
         shutil.rmtree(tmp_dir, ignore_errors=True)
         print("🧹 Tijdelijke bestanden verwijderd.")
+
