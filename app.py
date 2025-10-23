@@ -111,7 +111,7 @@ st.write("📸 Debug - ontvangen Base44 data:")
 st.json(fotos)
 
 if st.button("🕊️ Maak de presentatie"):
-with st.spinner("De presentatie wordt zorgvuldig samengesteld... even geduld 🌿"):
+    with st.spinner("De presentatie wordt zorgvuldig samengesteld... even geduld 🌿"):
     try:
         st.write("🪶 Start met samenstellen presentatie...")
         st.write("📂 Gekozen sjabloon:", sjabloon_pad)
