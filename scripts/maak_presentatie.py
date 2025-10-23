@@ -478,6 +478,6 @@ def maak_presentatie_automatisch(
         print("✅ Functie klaar, pad geretourneerd:", output_path)
         return output_path
 
-    finally:
-        shutil.rmtree(tmp_dir, ignore_errors=True)
-        print("Tijdelijke bestanden verwijderd.")
+        finally:
+            shutil.rmtree(tmp_dir, ignore_errors=True)
+            print("Tijdelijke bestanden verwijderd.")
