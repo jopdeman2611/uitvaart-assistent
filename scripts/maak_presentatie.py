@@ -453,7 +453,7 @@ def maak_presentatie_automatisch(
         )
 
         # 🧭 Debug: toon placeholders in sjabloon
-    try:
+        try:
             placeholders = _collect_named_placeholders(prs)
             print("DEBUG: Gevonden placeholders in sjabloon:")
             st.write("🧭 DEBUG: Gevonden placeholders in sjabloon:")
