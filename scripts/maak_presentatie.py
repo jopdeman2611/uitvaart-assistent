@@ -443,14 +443,13 @@ def maak_presentatie_automatisch(
             repeat_if_insufficient=repeat_if_insufficient
         )
 
-    # 5) Opslaan
-    base_dir = os.path.dirname(__file__) if "__file__" in globals() else os.getcwd()
-    output_path = os.path.join(base_dir, uitvoer_pad)
-    prs.save(output_path)
-    print(f"Presentatie opgeslagen als: {output_path}")
-    print("✅ Functie klaar, pad geretourneerd:", output_path)
-    return output_path
-
+        # 5) Opslaan
+        base_dir = os.path.dirname(__file__) if "__file__" in globals() else os.getcwd()
+        output_path = os.path.join(base_dir, uitvoer_pad)
+        prs.save(output_path)
+        print(f"Presentatie opgeslagen als: {output_path}")
+        print("✅ Functie klaar, pad geretourneerd:", output_path)
+        return output_path
 
     finally:
         shutil.rmtree(tmp_dir, ignore_errors=True)
