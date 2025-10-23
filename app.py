@@ -112,52 +112,51 @@ st.json(fotos)
 
 if st.button("🕊️ Maak de presentatie"):
     with st.spinner("De presentatie wordt zorgvuldig samengesteld... even geduld 🌿"):
-    try:
-        st.write("🪶 Start met samenstellen presentatie...")
-        st.write("📂 Gekozen sjabloon:", sjabloon_pad)
-        st.write("📸 Aantal Base44-foto’s:", len(fotos))
-        st.write("📤 Aantal geüploade bestanden:", len(uploaded_files) if uploaded_files else 0)
+        try:
+            st.write("🪶 Start met samenstellen presentatie...")
+            st.write("📂 Gekozen sjabloon:", sjabloon_pad)
+            st.write("📸 Aantal Base44-foto’s:", len(fotos))
+            st.write("📤 Aantal geüploade bestanden:", len(uploaded_files) if uploaded_files else 0)
 
-        base44_urls = fotos
-        upload_paths = []
+            base44_urls = fotos
+            upload_paths = []
 
-        if uploaded_files:
-            for file in uploaded_files:
-                temp_path = f"temp_{file.name}"
-                with open(temp_path, "wb") as f:
-                    f.write(file.getbuffer())
-                upload_paths.append(temp_path)
+            if uploaded_files:
+                for file in uploaded_files:
+                    temp_path = f"temp_{file.name}"
+                    with open(temp_path, "wb") as f:
+                        f.write(file.getbuffer())
+                    upload_paths.append(temp_path)
 
-        st.write("🧩 Foto’s klaar, nu presentatie aanmaken...")
+            st.write("🧩 Foto’s klaar, nu presentatie aanmaken...")
 
-    	st.write("🧩 Ga nu maak_presentatie_automatisch() aanroepen...")
-
-        result_path = maak_presentatie_automatisch(
-            sjabloon_pad=sjabloon_pad,
-            base44_foto_urls=base44_urls,
-            upload_bestanden=upload_paths if upload_paths else None,
-            titel_naam=naam,
-            titel_datums=f"{geboorte} – {overlijden}" if geboorte and overlijden else None,
-            titel_bijzin=zin,
-            ratio_mode="cover",
-            repeat_if_insufficient=True
-        )
-
-        st.success("✅ Presentatie is aangemaakt!")
-        st.write("📁 Bestandslocatie:", result_path)
-
-        with open(result_path, "rb") as f:
-            st.download_button(
-                label="📥 Download de presentatie (PPTX)",
-                data=f,
-                file_name="warme_uitvaart_presentatie.pptx",
-                mime="application/vnd.openxmlformats-officedocument.presentationml.presentation"
+            result_path = maak_presentatie_automatisch(
+                sjabloon_pad=sjabloon_pad,
+                base44_foto_urls=base44_urls,
+                upload_bestanden=upload_paths if upload_paths else None,
+                titel_naam=naam,
+                titel_datums=f"{geboorte} – {overlijden}" if geboorte and overlijden else None,
+                titel_bijzin=zin,
+                ratio_mode="cover",
+                repeat_if_insufficient=True
             )
 
-    except Exception as e:
-        import traceback
-        st.error("❌ Er is een fout opgetreden bij het maken van de presentatie.")
-        st.code(traceback.format_exc())
+            st.success("✅ Presentatie is aangemaakt!")
+            st.write("📁 Bestandslocatie:", result_path)
+
+            with open(result_path, "rb") as f:
+                st.download_button(
+                    label="📥 Download de presentatie (PPTX)",
+                    data=f,
+                    file_name="warme_uitvaart_presentatie.pptx",
+                    mime="application/vnd.openxmlformats-officedocument.presentationml.presentation"
+                )
+
+        except Exception as e:
+            import traceback
+            st.error("❌ Er is een fout opgetreden bij het maken van de presentatie.")
+            st.code(traceback.format_exc())
+
 
 
             st.success("✅ De presentatie is klaar!")
