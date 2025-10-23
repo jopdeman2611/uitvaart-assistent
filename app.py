@@ -1,12 +1,11 @@
-st.write("✅ app.py is geladen en actief.")
-
-
 import os
 import urllib.parse
 import streamlit as st
 import requests
 from dotenv import load_dotenv
 from scripts.maak_presentatie import maak_presentatie_automatisch
+
+st.write("✅ app.py is geladen en actief.")
 
 # --- BASISINSTELLINGEN ---
 st.set_page_config(page_title="Warme Uitvaartassistent", page_icon="🌿", layout="centered")
