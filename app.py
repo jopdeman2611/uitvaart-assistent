@@ -5,7 +5,6 @@ import requests
 from dotenv import load_dotenv
 from scripts.maak_presentatie import maak_presentatie_automatisch
 
-st.write("✅ app.py is geladen en actief.")
 
 # --- BASISINSTELLINGEN ---
 st.set_page_config(page_title="Warme Uitvaartassistent", page_icon="🌿", layout="centered")
@@ -20,8 +19,8 @@ BASE44_API_URL = "https://eerbetuiging.base44.app/api/functions/getGoedgekeurdeF
 # --- CONTROLE OP SLEUTEL ---
 if not STREAMLIT_API_KEY:
     st.error("❌ Geen API-sleutel gevonden. Controleer de Streamlit secrets-configuratie.")
-else:
-    st.success("🔒 Verbinding met Base44 beveiligd actief.")
+# else:
+#     st.success("🔒 Verbinding met Base44 beveiligd actief.")
 
 # --- FUNCTIE: FOTO'S OPHALEN ---
 def haal_goedgekeurde_fotos_op(naam_dierbare):
@@ -83,7 +82,6 @@ query_params = st.query_params
 eerbetoon_values = query_params.get("eerbetoon", ["onbekend"])
 naam_dierbare = urllib.parse.unquote("".join(eerbetoon_values)) if isinstance(eerbetoon_values, list) else eerbetoon_values
 
-st.write("🔍 Eerbetoon-parameter:", naam_dierbare)
 
 st.divider()
 st.subheader("📸 Goedgekeurde foto's van Base44")
