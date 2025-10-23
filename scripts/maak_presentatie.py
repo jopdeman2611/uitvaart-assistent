@@ -452,8 +452,9 @@ def maak_presentatie_automatisch(
             repeat_if_insufficient=repeat_if_insufficient
         )
 
-    # 🧭 Debug: toon placeholders in sjabloon
+    # 🧭 Debug: toon placeholders in sjabloon en verwerk opslag
     try:
+        # --- Debug placeholders ---
         placeholders = _collect_named_placeholders(prs)
         print("DEBUG: Gevonden placeholders in sjabloon:")
         st.write("🧭 DEBUG: Gevonden placeholders in sjabloon:")
@@ -466,24 +467,21 @@ def maak_presentatie_automatisch(
             print("⚠️ Geen placeholders met naam foto_x gevonden in sjabloon!")
             st.warning("⚠️ Geen placeholders met naam foto_x gevonden in sjabloon!")
 
-    except Exception as e:
-        print(f"❌ Fout bij debuggen van placeholders: {e}")
-        st.error(f"❌ Fout bij debuggen van placeholders: {e}")
-
-    # 5️⃣ Opslaan en opruimen
-    try:
+        # --- Opslaan presentatie ---
         base_dir = os.path.dirname(__file__) if "__file__" in globals() else os.getcwd()
         output_path = os.path.join(base_dir, uitvoer_pad)
         prs.save(output_path)
-        print(f"Presentatie opgeslagen als: {output_path}")
+        print(f"✅ Presentatie opgeslagen als: {output_path}")
+        st.success(f"✅ Presentatie opgeslagen als: {output_path}")
+
         print("✅ Functie klaar, pad geretourneerd:", output_path)
         return output_path
 
     except Exception as e:
-        print(f"❌ Fout bij opslaan van de presentatie: {e}")
-        st.error(f"❌ Fout bij opslaan van de presentatie: {e}")
+        print(f"❌ Fout bij genereren of opslaan van de presentatie: {e}")
+        st.error(f"❌ Fout bij genereren of opslaan van de presentatie: {e}")
 
     finally:
+        # Opruimen, altijd uitvoeren
         shutil.rmtree(tmp_dir, ignore_errors=True)
         print("🧹 Tijdelijke bestanden verwijderd.")
-
