@@ -452,7 +452,7 @@ def maak_presentatie_automatisch(
             repeat_if_insufficient=repeat_if_insufficient
         )
 
-    # 🧭 Debug: toon placeholders in sjabloon en verwerk opslag
+    # 🧭 Debug: toon placeholders en sla op
     try:
         # --- Debug placeholders ---
         placeholders = _collect_named_placeholders(prs)
@@ -482,6 +482,6 @@ def maak_presentatie_automatisch(
         st.error(f"❌ Fout bij genereren of opslaan van de presentatie: {e}")
 
     finally:
-        # Opruimen, altijd uitvoeren
+        # Altijd opruimen, ongeacht fouten
         shutil.rmtree(tmp_dir, ignore_errors=True)
         print("🧹 Tijdelijke bestanden verwijderd.")
