@@ -444,8 +444,8 @@ def maak_presentatie_automatisch(
             repeat_if_insufficient=repeat_if_insufficient
         )
 
-        # 🧭 Debug: toon hoeveel placeholders zijn gevonden
-        try:
+       # 🧭 Debug: toon hoeveel placeholders zijn gevonden
+       try:
            placeholders = _collect_named_placeholders(prs)
            print("DEBUG: Gevonden placeholders in sjabloon:")
            st.write("🧭 DEBUG: Gevonden placeholders in sjabloon:")
