@@ -47,24 +47,41 @@ def verzamel_fotobestanden(uploadmap: str) -> list[str]:
 def download_base44_fotos(foto_urls: list[str], tmp_dir: str) -> list[str]:
     """
     Download alle Base44-foto's (via URL) naar tmp_dir en retourneer een lijst paden.
-    Faal-tolerant: slaat foto's over die niet te downloaden zijn, logt een waarschuwing.
+    Deze versie is stabieler: bevat retries, timeouts en foutafhandeling.
     """
+    import time
     paden = []
+
+    print("🪶 Debug: start downloaden van Base44-foto’s...")
+
     for i, url in enumerate(foto_urls, start=1):
-        try:
-            r = requests.get(url, timeout=30)
-            r.raise_for_status()
-            # Extensie bepalen (fallback .jpg)
-            ext = ".jpg"
-            ct = r.headers.get("Content-Type", "")
-            if "png" in ct.lower():
-                ext = ".png"
-            pad = os.path.join(tmp_dir, f"base44_foto_{i}{ext}")
-            with open(pad, "wb") as f:
-                f.write(r.content)
-            paden.append(pad)
-        except Exception as e:
-            print(f"Waarschuwing: kon foto {i} niet downloaden ({url}): {e}")
+        success = False
+        for attempt in range(3):  # probeer max 3 keer
+            try:
+                print(f"➡️ Download poging {i} (poging {attempt+1}/3):", url)
+                r = requests.get(url, timeout=15)
+                if r.status_code == 200:
+                    ext = ".jpg"
+                    ct = r.headers.get("Content-Type", "")
+                    if "png" in ct.lower():
+                        ext = ".png"
+                    pad = os.path.join(tmp_dir, f"base44_foto_{i}{ext}")
+                    with open(pad, "wb") as f:
+                        f.write(r.content)
+                    print(f"✅ Foto {i} opgeslagen als:", pad)
+                    paden.append(pad)
+                    success = True
+                    break
+                else:
+                    print(f"⚠️ Foto {i}: status {r.status_code}, probeer opnieuw...")
+            except Exception as e:
+                print(f"❌ Fout bij foto {i} (poging {attempt+1}):", e)
+            time.sleep(1)
+
+        if not success:
+            print(f"🚫 Foto {i} kon niet worden gedownload na 3 pogingen.")
+
+    print(f"✅ In totaal {len(paden)} foto's succesvol gedownload.")
     return paden
 
 
