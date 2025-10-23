@@ -443,6 +443,17 @@ def maak_presentatie_automatisch(
             repeat_if_insufficient=repeat_if_insufficient
         )
 
+   # 🔍 Debug: toon hoeveel placeholders zijn gevonden
+   placeholders = _collect_named_placeholders(prs)
+   print("DEBUG: Gevonden placeholders in sjabloon:")
+   for idx, sh in placeholders:
+      print(f" - naam: foto_{idx}, shape_type: {getattr(sh, 'shape_type', 'onbekend')}")
+   if not placeholders:
+      print("⚠️ Geen placeholders met naam foto_x gevonden in sjabloon!")
+
+
+
+
         # 5) Opslaan
         base_dir = os.path.dirname(__file__) if "__file__" in globals() else os.getcwd()
         output_path = os.path.join(base_dir, uitvoer_pad)
