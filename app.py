@@ -70,20 +70,12 @@ sjabloon_pad = sjabloon_map[sfeer]
 
 st.divider()
 
-# --- 3. FOTO-UPLOAD (optioneel) ---
-uploaded_files = st.file_uploader(
-    "Upload extra foto's (optioneel, los of ZIP)",
-    type=["jpg", "jpeg", "png", "zip"],
-    accept_multiple_files=True
-)
+# --- 3. FOTO'S UIT BASE44 VIA URL (geen handmatige upload meer) ---
 
-# --- 4. BASE44 KOPPELING VIA URL ---
 query_params = st.query_params
 eerbetoon_values = query_params.get("eerbetoon", ["onbekend"])
 naam_dierbare = urllib.parse.unquote("".join(eerbetoon_values)) if isinstance(eerbetoon_values, list) else eerbetoon_values
 
-
-st.divider()
 st.subheader("📸 Goedgekeurde foto's van Base44")
 
 fotos = []
@@ -91,77 +83,36 @@ if naam_dierbare != "onbekend":
     fotos = haal_goedgekeurde_fotos_op(naam_dierbare)
 
 if fotos:
-    st.success(f"✅ {len(fotos)} goedgekeurde foto's gevonden.")
+    st.success(f"✅ {len(fotos)} foto’s automatisch gevonden")
     cols = st.columns(3)
     for i, foto_url in enumerate(fotos):
         with cols[i % 3]:
             st.image(foto_url, use_container_width=True)
 else:
-    st.info("ℹ️ Er zijn nog geen goedgekeurde foto's beschikbaar of de naam ontbreekt.")
+    st.info("ℹ️ Er zijn nog geen goedgekeurde foto's beschikbaar.")
 
 st.divider()
 
-# --- 5. PRESENTATIE GENEREREN ---
+# --- 4. PRESENTATIE GENEREREN ---
+
 st.header("💛 Automatische presentatie")
 
 if st.button("🕊️ Maak de presentatie"):
-    with st.spinner("De presentatie wordt zorgvuldig samengesteld... even geduld 🌿"):
+    with st.spinner("Een moment alstublieft... ik stel de presentatie zorgvuldig samen 🌿"):
         try:
-            st.write("🪶 Start met samenstellen presentatie...")
-            st.write("📂 Gekozen sjabloon:", sjabloon_pad)
-            st.write("📸 Aantal Base44-foto’s:", len(fotos))
-            st.write("📤 Aantal geüploade bestanden:", len(uploaded_files) if uploaded_files else 0)
+            if not fotos:
+                st.error("❌ Geen foto’s gevonden. Controleer aub bij Base44.")
+                st.stop()
 
-            if not fotos and not uploaded_files:
-                st.error("❌ Er zijn geen foto's gevonden om te gebruiken. Controleer Base44 of upload handmatig.")
-            else:
-                base44_urls = fotos or []
-                upload_paths = []
-
-                # Debug log
-                st.write("📥 Begin met downloaden/verwerken Base44-foto's...")
-
-                if uploaded_files:
-                    for file in uploaded_files:
-                        temp_path = f"temp_{file.name}"
-                        with open(temp_path, "wb") as f:
-                            f.write(file.getbuffer())
-                        upload_paths.append(temp_path)
-
-                st.write("🧩 Foto’s klaar, nu presentatie aanmaken...")
-
-                # 👉 Hier debuggen we het resultaatpad
-                result_path = maak_presentatie_automatisch(
-                    sjabloon_pad=sjabloon_pad,
-                    base44_foto_urls=base44_urls,
-                    upload_bestanden=upload_paths if upload_paths else None,
-                    titel_naam=naam,
-                    titel_datums=f"{geboorte} – {overlijden}" if geboorte and overlijden else None,
-                    titel_bijzin=zin,
-                    ratio_mode="cover",
-                    repeat_if_insufficient=True
-                )
-
-                st.write("📦 Debug – ontvangen result_path:", result_path)
-
-                if not result_path or not os.path.exists(result_path):
-                    st.error("❌ De presentatie kon niet worden opgeslagen of het pad is ongeldig.")
-                else:
-                    st.success("✅ De presentatie is klaar!")
-                    st.write("📁 Bestandslocatie:", result_path)
-
-                    with open(result_path, "rb") as f:
-                        st.download_button(
-                            label="📥 Download de presentatie (PPTX)",
-                            data=f,
-                            file_name="warme_uitvaart_presentatie.pptx",
-                            mime="application/vnd.openxmlformats-officedocument.presentationml.presentation"
-                        )
-
-        except Exception as e:
-            import traceback
-            st.error("❌ Er is een fout opgetreden bij het maken van de presentatie.")
-            st.code(traceback.format_exc())
+            result_path = maak_presentatie_automatisch(
+                sjabloon_pad=sjabloon_pad,
+                base44_foto_urls=fotos,
+                titel_naam=naam,
+                titel_datums=f"{geboorte} – {overlijden}" if geboorte and overlijden else None,
+                titel_bijzin=zin,
+                ratio_mode="cover",
+                repeat_if_insufficient=True
+            )
 
             st.success("✅ De presentatie is klaar!")
             with open(result_path, "rb") as f:
@@ -171,12 +122,5 @@ if st.button("🕊️ Maak de presentatie"):
                     file_name="warme_uitvaart_presentatie.pptx",
                     mime="application/vnd.openxmlformats-officedocument.presentationml.presentation"
                 )
-
-            # Voorbeeldweergave
-            st.subheader("📷 Voorbeeldweergave")
-            for i, foto_url in enumerate(base44_urls[:6]):
-                st.image(foto_url, width=400)
-            st.caption("Dit is een indruk van de foto's in de presentatie.")
-
         except Exception as e:
-            st.error(f"❌ Er ging iets mis bij het maken van de presentatie: {e}")
+            st.error("❌ Er is iets misgegaan tijdens het maken van de presentatie.")
