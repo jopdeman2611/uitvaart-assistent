@@ -106,9 +106,6 @@ st.divider()
 # --- 5. PRESENTATIE GENEREREN ---
 st.header("💛 Automatische presentatie")
 
-st.write("📸 Debug - ontvangen Base44 data:")
-st.json(fotos)
-
 if st.button("🕊️ Maak de presentatie"):
     with st.spinner("De presentatie wordt zorgvuldig samengesteld... even geduld 🌿"):
         try:
