@@ -121,7 +121,7 @@ geboorte = format_date(eerbetoon.get("geboortedatum", ""))
 overlijden = format_date(eerbetoon.get("overlijdensdatum", ""))
 zin = eerbetoon.get("zin", "")  # of leeg indien niet aanwezig
 
-st.markdown(f"**Naam van de overledene**: {naam}")
+st.markdown(f"**Naam van dierbare**: {naam}")
 st.markdown(f"**Geboortedatum**: {geboorte if geboorte else '—'}")
 st.markdown(f"**Overlijdensdatum**: {overlijden if overlijden else '—'}")
 st.markdown(f"**Korte zin / motto**: {zin if zin else '—'}")
