@@ -88,11 +88,8 @@ query_params = st.query_params
 eerbetoon_values = query_params.get("eerbetoon", ["onbekend"])
 naam_dierbare = urllib.parse.unquote("".join(eerbetoon_values)) if isinstance(eerbetoon_values, list) else eerbetoon_values
 
-st.subheader("📸 Goedgekeurde foto's van Base44")
-
-fotos = []
-if naam_dierbare != "onbekend":
-    fotos = haal_goedgekeurde_fotos_op(naam_dierbare)
+# ✅ Ophalen van foto’s en metadata (in één keer!)
+fotos, eerbetoon = haal_goedgekeurde_fotos_op(naam_dierbare) if naam_dierbare != "onbekend" else ([], {})
 
 if fotos:
     st.success(f"✅ {len(fotos)} foto’s automatisch gevonden")
@@ -102,6 +99,12 @@ if fotos:
             st.image(foto_url, use_container_width=True)
 else:
     st.info("ℹ️ Er zijn nog geen goedgekeurde foto's beschikbaar.")
+# --- Automatisch formulier vooraf invullen ---
+naam = st.text_input("Naam van de overledene", value=eerbetoon.get("naam", ""))
+geboorte = st.text_input("Geboortedatum", value=eerbetoon.get("geboortedatum", ""))
+overlijden = st.text_input("Overlijdensdatum", value=eerbetoon.get("overlijdensdatum", ""))
+zin = st.text_input("Korte zin of motto (optioneel)")
+
 
 st.divider()
 
