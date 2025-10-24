@@ -19,28 +19,17 @@ if not STREAMLIT_API_KEY:
 # ===================== Helpers =====================
 def api_haal_eerbetoon_data(naam_dierbare: str):
     """Haalt foto's + metadata op uit Base44."""
+    naam_dierbare = naam_dierbare.strip().replace("–", "-").replace("—", "-")
+    headers = {"X-API-Key": STREAMLIT_API_KEY, "Content-Type": "application/json"}
+
     try:
-        # Normaliseer streepjes (belangrijk voor exacte match!)
-        naam_dierbare = naam_dierbare.strip().replace("–", "-").replace("—", "-")
-
-        payload = {"naam_dierbare": naam_dierbare}
-        headers = {"X-API-Key": STREAMLIT_API_KEY, "Content-Type": "application/json"}
-
-        r = requests.post(BASE44_API_URL, json=payload, headers=headers, timeout=15)
-
-        if r.status_code != 200:
-            return [], {}
-
+        r = requests.post(BASE44_API_URL, json={"naam_dierbare": naam_dierbare}, headers=headers, timeout=15)
         data = r.json() or {}
-        fotos = data.get("goedgekeurde_fotos", []) or []
-        eerbetoon = data.get("eerbetoon", {}) or {}
-
-        return fotos, eerbetoon
-    except Exception:
+        return data.get("goedgekeurde_fotos", []) or [], data.get("eerbetoon", {}) or {}
+    except:
         return [], {}
 
 def format_date(date_str):
-    """YYYY-MM-DD → DD-MM-YYYY"""
     if not date_str:
         return ""
     try:
@@ -49,53 +38,39 @@ def format_date(date_str):
     except:
         return date_str
 
+# ===================== Naam uit URL =====================
+query_params = st.query_params
+naam_raw = query_params.get("naam", [""])[0].strip()
+
+if not naam_raw:
+    st.warning("ℹ️ Geen naam ontvangen via link. Vul hieronder de naam van uw dierbare in.")
+    naam_raw = ""
+
+# ✅ Slechts 1x ophalen
+fotos, eerbetoon_data = api_haal_eerbetoon_data(naam_raw) if naam_raw else ([], {})
+
 # ===================== UI =====================
 st.title("🌿 Warme Uitvaartassistent")
 st.write("We helpen u graag bij het maken van een warme en liefdevolle presentatie 🌿")
-
 st.divider()
 
-# ✅ URL parameter uitlezen
-query_params = st.experimental_get_query_params()
-eerbetoon_raw = query_params.get("eerbetoon", [""])[0]
-
-# ✅ Correcte naam reconstrueren → fix dubbele spaties en letter spacing
-naam_dierbare = " ".join(eerbetoon_raw.split())
-naam_dierbare = naam_dierbare.replace("–", "-").replace("—", "-")
-
-# ✅ Slechts 1 API-call
-fotos, eerbetoon_data = api_haal_eerbetoon_data(naam_dierbare)
-
-# ===================== Formulier =====================
+# ✅ Formulier
 st.subheader("Gegevens van uw dierbare")
-
-naam = st.text_input(
-    "Naam van de dierbare",
-    value=eerbetoon_data.get("naam_dierbare", naam_dierbare)
-)
-
-geboorte = st.text_input(
-    "Geboortedatum",
-    value=format_date(eerbetoon_data.get("geboortedatum", ""))
-)
-
-overlijden = st.text_input(
-    "Overlijdensdatum",
-    value=format_date(eerbetoon_data.get("overlijdensdatum", ""))
-)
-
+naam = st.text_input("Naam van de dierbare", value=eerbetoon_data.get("naam_dierbare", naam_raw))
+geboorte = st.text_input("Geboortedatum", value=format_date(eerbetoon_data.get("geboortedatum", "")))
+overlijden = st.text_input("Overlijdensdatum", value=format_date(eerbetoon_data.get("overlijdensdatum", "")))
 zin = st.text_input("Korte zin of motto (optioneel)")
 
 st.divider()
 
-# ===================== Sfeer =====================
+# ✅ Sfeer
 st.subheader("Kies de sfeer van de presentatie")
 sfeer = st.radio("Sfeer", ["Rustig", "Bloemrijk", "Modern"], horizontal=True)
 sjabloon_pad = f"sjablonen/Sjabloon{sfeer}.pptx"
 
 st.divider()
 
-# ===================== Foto preview =====================
+# ✅ Foto's
 if fotos:
     st.subheader("📸 Goedgekeurde foto's")
     cols = st.columns(3)
@@ -103,20 +78,19 @@ if fotos:
         with cols[i % 3]:
             st.image(foto, use_container_width=True)
 else:
-    st.info("ℹ️ Nog geen goedgekeurde foto's beschikbaar vanuit Base44.")
+    st.info("ℹ️ Nog geen goedgekeurde foto's beschikbaar vanuit Base44 of naam ontbreekt.")
 
 st.divider()
 
-# ===================== Genereer Presentatie =====================
+# ✅ Presentatie genereren
 st.header("💛 Automatische presentatie")
 
 if st.button("🕊️ Maak de presentatie"):
+    if not fotos:
+        st.error("❌ Geen foto's beschikbaar. Controleer Base44.")
+        st.stop()
+
     with st.spinner("Een moment alstublieft... 🌿"):
-
-        if not fotos:
-            st.error("❌ Geen foto's. Controleer Base44.")
-            st.stop()
-
         resultaat = maak_presentatie_automatisch(
             sjabloon_pad=sjabloon_pad,
             base44_foto_urls=fotos,
@@ -127,11 +101,11 @@ if st.button("🕊️ Maak de presentatie"):
             repeat_if_insufficient=True
         )
 
-        st.success("✅ Presentatie gereed! Download hieronder:")
-        with open(resultaat, "rb") as f:
-            st.download_button(
-                label="📥 Download presentatie (PPTX)",
-                data=f,
-                file_name="warme_uitvaart_presentatie.pptx",
-                mime="application/vnd.openxmlformats-officedocument.presentationml.presentation"
-            )
+    st.success("✅ Presentatie gereed! Download hieronder:")
+    with open(resultaat, "rb") as f:
+        st.download_button(
+            label="📥 Download presentatie (PPTX)",
+            data=f,
+            file_name="warme_uitvaart_presentatie.pptx",
+            mime="application/vnd.openxmlformats-officedocument.presentationml.presentation"
+        )
