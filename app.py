@@ -116,10 +116,17 @@ else:
 # ===================== Formulier =====================
 st.subheader("Gegevens van uw dierbare")
 
-naam = st.text_input("Naam van de overledene", value=eerbetoon.get("naam_dierbare", naam_dierbare))
-geboorte = st.text_input("Geboortedatum", value=format_date(eerbetoon.get("geboortedatum", "")))
-overlijden = st.text_input("Overlijdensdatum", value=format_date(eerbetoon.get("overlijdensdatum", "")))
-zin = st.text_input("Korte zin of motto (optioneel)")
+st.subheader("Gegevens van uw dierbare")
+
+naam = eerbetoon.get("naam_dierbare", naam_dierbare)
+geboorte = format_date(eerbetoon.get("geboortedatum", ""))
+overlijden = format_date(eerbetoon.get("overlijdensdatum", ""))
+zin = eerbetoon.get("zin", "")  # of leeg indien niet aanwezig
+
+st.markdown(f"**Naam van de overledene**: {naam}")
+st.markdown(f"**Geboortedatum**: {geboorte if geboorte else '—'}")
+st.markdown(f"**Overlijdensdatum**: {overlijden if overlijden else '—'}")
+st.markdown(f"**Korte zin / motto**: {zin if zin else '—'}")
 
 st.divider()
 
