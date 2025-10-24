@@ -6,6 +6,8 @@ from dotenv import load_dotenv
 from scripts.maak_presentatie import maak_presentatie_automatisch
 from urllib.parse import unquote
 import re
+from pptx import Presentation
+from PIL import Image
 import tempfile
 
 
@@ -27,8 +29,10 @@ def api_haal_eerbetoon_data(naam_dierbare: str):
     try:
         headers = {"X-API-Key": STREAMLIT_API_KEY, "Content-Type": "application/json"}
         r = requests.post(BASE44_API_URL, json={"naam_dierbare": naam_dierbare}, headers=headers, timeout=15)
+
         if r.status_code != 200:
             return [], {}
+
         data = r.json() or {}
         return data.get("goedgekeurde_fotos", []) or [], data.get("eerbetoon", {}) or {}
     except:
@@ -41,6 +45,7 @@ def api_haal_naam_via_id(eerbetoon_id: str):
         r = requests.post(BASE44_EERBETOON_BY_ID_URL, json={"id": eerbetoon_id}, headers=headers, timeout=15)
         if r.status_code != 200:
             return None
+
         data = r.json() or {}
         return data.get("naam_dierbare")
     except:
@@ -66,15 +71,20 @@ st.divider()
 query_params = st.query_params
 naam_dierbare = ""
 
+# Combineer alle mogelijke delen (Streamlit splitst soms per letter)
 for key, val in query_params.items():
     if key.startswith("eerbetoon"):
         naam_dierbare += key.replace("eerbetoon", "")
         naam_dierbare += "".join(val)
 
+# Decoderen en opschonen
 naam_dierbare = urllib.parse.unquote(naam_dierbare).strip()
+
+# ✅ Dubbele of onjuiste spaties verwijderen
 while "  " in naam_dierbare:
     naam_dierbare = naam_dierbare.replace("  ", " ")
 
+# ✅ Typografische varianten corrigeren
 naam_dierbare = (
     naam_dierbare
     .replace("–", "-")
@@ -84,22 +94,28 @@ naam_dierbare = (
     .replace(" -", "-")
 )
 
+# ✅ Voor alle zekerheid: eerste letter hoofdletter
 if naam_dierbare:
     naam_dierbare = naam_dierbare[0].upper() + naam_dierbare[1:]
+
+# Debug (kan later weg)
+# st.write("✅ Herkende naam voor API:", repr(naam_dierbare))
 
 fotos = []
 eerbetoon = {}
 
 if naam_dierbare:
+    # Eerste poging: naam direct gebruiken
     fotos, eerbetoon = api_haal_eerbetoon_data(naam_dierbare)
+
+    # Tweede poging: als het een ID is
     if not fotos and len(naam_dierbare) > 10:
-        mogelijk = api_haal_naam_via_id(naam_dierbare)
-        if mogelijk:
-            naam_dierbare = mogelijk
+        mogelijke_naam = api_haal_naam_via_id(naam_dierbare)
+        if mogelijke_naam:
+            naam_dierbare = mogelijke_naam
             fotos, eerbetoon = api_haal_eerbetoon_data(naam_dierbare)
 else:
     st.info("🌿 Vul hieronder de naam van uw dierbare in om te beginnen.")
-
 
 # ===================== Formulier =====================
 st.subheader("Gegevens van uw dierbare")
@@ -129,7 +145,7 @@ if fotos:
     cols = st.columns(3)
     for i, foto in enumerate(fotos):
         with cols[i % 3]:
-            st.image(foto, use_column_width=True)
+            st.image(foto, use_container_width=True)
 else:
     st.info("ℹ️ We hebben nog geen foto's kunnen vinden. Controleer de naam in Base44.")
 
@@ -140,12 +156,12 @@ st.divider()
 st.header("💛 Automatische presentatie")
 
 if st.button("🕊️ Maak de presentatie"):
-
-    if not fotos:
-        st.error("❌ Er zijn nog geen foto's beschikbaar! Controleer Base44.")
-        st.stop()
-
     with st.spinner("Een moment alstublieft... 🌿"):
+
+        if not fotos:
+            st.error("❌ Er zijn nog geen foto's beschikbaar! Controleer Base44.")
+            st.stop()
+
         resultaat = maak_presentatie_automatisch(
             sjabloon_pad=sjabloon_pad,
             base44_foto_urls=fotos,
@@ -156,11 +172,6 @@ if st.button("🕊️ Maak de presentatie"):
         )
 
         st.success("✅ Presentatie gereed! Download hieronder:")
-
-        # ✅ Preview via eerste foto (fijn voor familie!)
-        st.subheader("📽️ Voorbeeld van de eerste slide")
-        st.image(fotos[0], caption="Begin van de presentatie", use_column_width=True)
-
         with open(resultaat, "rb") as f:
             st.download_button(
                 label="📥 Download presentatie (PPTX)",
