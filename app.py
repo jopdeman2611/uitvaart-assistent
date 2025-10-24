@@ -1,5 +1,4 @@
 import os
-import urllib.parse
 import streamlit as st
 import requests
 from dotenv import load_dotenv
@@ -16,18 +15,25 @@ if not STREAMLIT_API_KEY:
     st.error("❌ Geen API-sleutel gevonden — neem aub contact op met beheerder.")
     st.stop()
 
+
 # ===================== Helpers =====================
 def api_haal_eerbetoon_data(naam_dierbare: str):
-    """Haalt foto's + metadata op uit Base44."""
-    naam_dierbare = naam_dierbare.strip().replace("–", "-").replace("—", "-")
-    headers = {"X-API-Key": STREAMLIT_API_KEY, "Content-Type": "application/json"}
-
     try:
+        naam_dierbare = naam_dierbare.strip()
+        headers = {
+            "X-API-Key": STREAMLIT_API_KEY,
+            "Content-Type": "application/json"
+        }
         r = requests.post(BASE44_API_URL, json={"naam_dierbare": naam_dierbare}, headers=headers, timeout=15)
+
+        if r.status_code != 200:
+            return [], {}
+
         data = r.json() or {}
         return data.get("goedgekeurde_fotos", []) or [], data.get("eerbetoon", {}) or {}
     except:
         return [], {}
+
 
 def format_date(date_str):
     if not date_str:
@@ -38,25 +44,25 @@ def format_date(date_str):
     except:
         return date_str
 
+
 # ===================== Naam uit URL =====================
-query_params = st.query_params
-naam_raw = query_params.get("naam", [""])[0].strip()
+query_params = st.query_params  # ✅ nieuwe API
+eerbetoon_raw = query_params.get("eerbetoon", [""])[0]
 
-if not naam_raw:
-    st.warning("ℹ️ Geen naam ontvangen via link. Vul hieronder de naam van uw dierbare in.")
-    naam_raw = ""
+# ✅ Herstel spaties (Base44 stuurt per-letter spacing soms foutief)
+naam_dierbare = " ".join(eerbetoon_raw.split())
 
-# ✅ Slechts 1x ophalen
-fotos, eerbetoon_data = api_haal_eerbetoon_data(naam_raw) if naam_raw else ([], {})
+# ✅ In één keer ophalen
+fotos, eerbetoon_data = api_haal_eerbetoon_data(naam_dierbare) if naam_dierbare else ([], {})
+
 
 # ===================== UI =====================
 st.title("🌿 Warme Uitvaartassistent")
-st.write("We helpen u graag bij het maken van een warme en liefdevolle presentatie 🌿")
 st.divider()
 
-# ✅ Formulier
 st.subheader("Gegevens van uw dierbare")
-naam = st.text_input("Naam van de dierbare", value=eerbetoon_data.get("naam_dierbare", naam_raw))
+
+naam = st.text_input("Naam van de dierbare", value=eerbetoon_data.get("naam_dierbare", naam_dierbare))
 geboorte = st.text_input("Geboortedatum", value=format_date(eerbetoon_data.get("geboortedatum", "")))
 overlijden = st.text_input("Overlijdensdatum", value=format_date(eerbetoon_data.get("overlijdensdatum", "")))
 zin = st.text_input("Korte zin of motto (optioneel)")
@@ -70,7 +76,7 @@ sjabloon_pad = f"sjablonen/Sjabloon{sfeer}.pptx"
 
 st.divider()
 
-# ✅ Foto's
+# ✅ Foto's tonen
 if fotos:
     st.subheader("📸 Goedgekeurde foto's")
     cols = st.columns(3)
@@ -78,7 +84,7 @@ if fotos:
         with cols[i % 3]:
             st.image(foto, use_container_width=True)
 else:
-    st.info("ℹ️ Nog geen goedgekeurde foto's beschikbaar vanuit Base44 of naam ontbreekt.")
+    st.info("ℹ️ Geen foto's gevonden voor deze naam.")
 
 st.divider()
 
@@ -87,7 +93,7 @@ st.header("💛 Automatische presentatie")
 
 if st.button("🕊️ Maak de presentatie"):
     if not fotos:
-        st.error("❌ Geen foto's beschikbaar. Controleer Base44.")
+        st.error("❌ Geen foto's beschikbaar. Controleer Base44 of naam.")
         st.stop()
 
     with st.spinner("Een moment alstublieft... 🌿"):
@@ -101,7 +107,7 @@ if st.button("🕊️ Maak de presentatie"):
             repeat_if_insufficient=True
         )
 
-    st.success("✅ Presentatie gereed! Download hieronder:")
+    st.success("✅ Presentatie gereed!")
     with open(resultaat, "rb") as f:
         st.download_button(
             label="📥 Download presentatie (PPTX)",
