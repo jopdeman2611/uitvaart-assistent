@@ -73,7 +73,7 @@ eerbetoon_id = urllib.parse.unquote(" ".join(eerbetoon_values)).replace("+", " "
 
 st.write("📌 Debug volledige eerbetoon_id:", eerbetoon_id)
 
-fotos, eerbetoon = api_haal_eerbetoon_data(naam_dierbare) if naam_dierbare else ([], {})
+fotos, eerbetoon = api_haal_eerbetoon_data(eerbetoon_id) if eerbetoon_id else ([], {})
 
 # ===== FORMULIER =====
 st.subheader("Gegevens van uw dierbare")
