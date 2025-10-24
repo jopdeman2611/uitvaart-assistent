@@ -44,7 +44,6 @@ def api_haal_eerbetoon_data(naam_dierbare: str):
             return [], {}
 
         data = r.json() or {}
-
         fotos = data.get("goedgekeurde_fotos", []) or []
         eerbetoon = data.get("eerbetoon", {}) or {}
 
@@ -67,29 +66,40 @@ def format_date(date_str):
 
 # ===================== UI =====================
 st.title("🌿 Warme Uitvaartassistent")
-
 st.divider()
 
-# ⬇ Naam ophalen uit URL-params
-query_params = st.query_params
-eerbetoon_param = query_params.get("eerbetoon", [""])[0]
-naam_dierbare = urllib.parse.unquote(eerbetoon_param).strip()
+# ✅ URL parameter uitlezen
+query_params = st.experimental_get_query_params()
+eerbetoon_raw = query_params.get("eerbetoon", [""])[0]
 
-st.write("🔍 Debug volledige naam_dierbare:", naam_dierbare)
+st.write("🔍 Debug: ontvangen URL naam:", repr(eerbetoon_raw))
+st.write("📏 Lengte ontvangen naam:", len(eerbetoon_raw))
 
-fotos, eerbetoon = api_haal_eerbetoon_data(naam_dierbare) if naam_dierbare else ([], {})
+# ✅ Correcte naam reconstrueren → weghalen foutieve per-letter spacing
+naam_dierbare = " ".join(eerbetoon_raw.split())
+
+st.write("✅ Debug: naam_dierbare gebruikt voor API:", repr(naam_dierbare))
+
+# ✅ Slechts 1 API-call
+fotos, eerbetoon = api_haal_eerbetoon_data(naam_dierbare)
 
 # ===================== Formulier =====================
 st.subheader("Gegevens van uw dierbare")
 
-naam = st.text_input("Naam van de dierbare",
-                     value=eerbetoon.get("naam_dierbare", naam_dierbare))
+naam = st.text_input(
+    "Naam van de overledene",
+    value=eerbetoon.get("naam_dierbare", naam_dierbare)
+)
 
-geboorte = st.text_input("Geboortedatum",
-                         value=format_date(eerbetoon.get("geboortedatum", "")))
+geboorte = st.text_input(
+    "Geboortedatum",
+    value=format_date(eerbetoon.get("geboortedatum", ""))
+)
 
-overlijden = st.text_input("Overlijdensdatum",
-                           value=format_date(eerbetoon.get("overlijdensdatum", "")))
+overlijden = st.text_input(
+    "Overlijdensdatum",
+    value=format_date(eerbetoon.get("overlijdensdatum", ""))
+)
 
 zin = st.text_input("Korte zin of motto (optioneel)")
 
@@ -102,7 +112,7 @@ sjabloon_pad = f"sjablonen/Sjabloon{sfeer}.pptx"
 
 st.divider()
 
-# ===================== Foto’s preview =====================
+# ===================== Foto preview =====================
 if fotos:
     st.subheader("📸 Goedgekeurde foto's")
     cols = st.columns(3)
@@ -114,11 +124,12 @@ else:
 
 st.divider()
 
-# ===================== Presentatie genereren =====================
+# ===================== Genereer Presentatie =====================
 st.header("💛 Automatische presentatie")
 
 if st.button("🕊️ Maak de presentatie"):
     with st.spinner("Een moment alstublieft... 🌿"):
+
         if not fotos:
             st.error("❌ Geen foto's. Controleer Base44.")
             st.stop()
