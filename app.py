@@ -5,7 +5,7 @@ import requests
 from dotenv import load_dotenv
 from scripts.maak_presentatie import maak_presentatie_automatisch
 
-# ====== BASISINSTELLINGEN ======
+# ===== BASISINSTELLINGEN =====
 st.set_page_config(page_title="Warme Uitvaartassistent", page_icon="🌿", layout="centered")
 load_dotenv()
 
@@ -13,36 +13,33 @@ STREAMLIT_API_KEY = st.secrets.get("STREAMLIT_API_KEY") or os.getenv("STREAMLIT_
 BASE44_API_URL = "https://eerbetuiging.base44.app/api/functions/getGoedgekeurdeFotos"
 
 if not STREAMLIT_API_KEY:
-    st.error("❌ Geen API-sleutel gevonden — neem aub contact op met beheerder.")
+    st.error("❌ API-sleutel ontbreekt")
     st.stop()
 
-
-# ====== HELPERS ======
-def api_haal_eerbetoon_data(eerbetoon_id: str):
-    """Haalt foto's + metadata op uit Base44."""
+# ===== HELPERS =====
+def api_haal_eerbetoon_data(naam_dierbare: str):
+    """Haalt foto's + gegevens uit Base44 op"""
     try:
         headers = {"X-API-Key": STREAMLIT_API_KEY, "Content-Type": "application/json"}
-        payload = {"eerbetoon_id": eerbetoon_id}
-        
-        st.write("📡 Verstuurde request payload:")
+        payload = {"naam_dierbare": naam_dierbare}  # ✅ juiste payload
+
+        st.write("📤 Verstuurde payload:")
         st.json(payload)
 
         r = requests.post(BASE44_API_URL, json=payload, headers=headers, timeout=15)
 
-        st.write("📥 Base44 API Response:")
+        st.write("📥 API Response:")
         try:
             st.json(r.json())
         except:
             st.write(r.text)
 
         if r.status_code != 200:
-            st.error(f"⚠️ Fout bij ophalen gegevens (status {r.status_code})")
+            st.warning(f"⚠️ Base44 gaf fout terug (status {r.status_code})")
             return [], {}
 
         data = r.json() or {}
-
-        # ✅ Flexibel ophalen van foto’s
-        fotos = data.get("fotos") or data.get("goedgekeurde_fotos") or []
+        fotos = data.get("goedgekeurde_fotos") or data.get("fotos") or []
         eerbetoon = data.get("eerbetoon") or {}
 
         return fotos, eerbetoon
@@ -50,7 +47,6 @@ def api_haal_eerbetoon_data(eerbetoon_id: str):
     except Exception as e:
         st.error(f"⚠️ Base44 foutmelding: {e}")
         return [], {}
-
 
 def format_date(date_str: str):
     """YYYY-MM-DD → DD-MM-YYYY"""
@@ -63,74 +59,63 @@ def format_date(date_str: str):
         return date_str
 
 
-# ====== UI START ======
+# ===== UI START =====
 st.title("🌿 Warme Uitvaartassistent")
-st.write("We helpen u graag bij het maken van een warme en liefdevolle presentatie 🌿")
 
 st.divider()
 
-
-# ====== URL-Parameter uitlezen ======
+# ===== EERBETOON ID UIT URL =====
 query_params = st.query_params
-eerbetoon_id = query_params.get("eerbetoon", [""])[0]
-eerbetoon_id = urllib.parse.unquote(eerbetoon_id).strip()
+eerbetoon_raw = query_params.get("eerbetoon", [""])[0]
+naam_dierbare = urllib.parse.unquote(eerbetoon_raw).replace("+", " ").strip()
 
-st.write("📌 Debug eerbetoon_id:", eerbetoon_id)
+st.write("🔍 Debug naam_dierbare:", naam_dierbare)
 
-fotos, eerbetoon = api_haal_eerbetoon_data(eerbetoon_id) if eerbetoon_id else ([], {})
+fotos, eerbetoon = api_haal_eerbetoon_data(naam_dierbare) if naam_dierbare else ([], {})
 
-
-# ====== FORMULIER ======
+# ===== FORMULIER =====
 st.subheader("Gegevens van uw dierbare")
 
-naam = st.text_input(
-    "Naam van de overledene",
-    value=eerbetoon.get("naam_dierbare", eerbetoon.get("naam", ""))
-)
+naam = st.text_input("Naam van de dierbare",  # ✅ veldnaam aangepast
+                     value=eerbetoon.get("naam_dierbare", naam_dierbare))
 
-geboorte = st.text_input(
-    "Geboortedatum",
-    value=format_date(eerbetoon.get("geboortedatum", ""))
-)
+geboorte = st.text_input("Geboortedatum",
+                         value=format_date(eerbetoon.get("geboortedatum", "")))
 
-overlijden = st.text_input(
-    "Overlijdensdatum",
-    value=format_date(eerbetoon.get("overlijdensdatum", ""))
-)
+overlijden = st.text_input("Overlijdensdatum",
+                           value=format_date(eerbetoon.get("overlijdensdatum", "")))
 
 zin = st.text_input("Korte zin of motto (optioneel)")
 
 st.divider()
 
-
-# ====== SFEERKEUZE ======
-st.subheader("Kies de sfeer van de presentatie")
+# ===== SFEER =====
+st.subheader("Kies de sfeer")
 sfeer = st.radio("Sfeer", ["Rustig", "Bloemrijk", "Modern"], horizontal=True)
 sjabloon_pad = f"sjablonen/Sjabloon{sfeer}.pptx"
 
 st.divider()
 
-
-# ====== FOTO PREVIEW ======
+# ===== FOTO'S =====
 if fotos:
-    st.subheader("📸 Goedgekeurde foto's uit Base44")
+    st.subheader("📸 Goedgekeurde foto's")
     cols = st.columns(3)
-    for i, url in enumerate(fotos):
+    for i, foto in enumerate(fotos):
         with cols[i % 3]:
-            st.image(url, use_container_width=True)
+            st.image(foto, use_container_width=True)
 else:
-    st.info("ℹ️ Nog geen goedgekeurde foto's beschikbaar vanuit Base44.")
+    st.info("ℹ️ Geen goedgekeurde foto's gevonden.")
 
 st.divider()
 
-
-# ====== PRESENTATIE GENEREREN ======
+# ===== GENEREREN =====
 st.header("💛 Automatische presentatie")
 
 if st.button("🕊️ Maak de presentatie"):
-    with st.spinner("Een moment alstublieft... de presentatie wordt zorgvuldig samengesteld 🌿"):
+    with st.spinner("De presentatie wordt zorgvuldig samengesteld 🌿"):
+
         if not fotos:
-            st.error("❌ Geen foto’s beschikbaar. Controleer Base44.")
+            st.error("❌ Geen foto’s beschikbaar uit Base44")
             st.stop()
 
         resultaat = maak_presentatie_automatisch(
@@ -138,12 +123,10 @@ if st.button("🕊️ Maak de presentatie"):
             base44_foto_urls=fotos,
             titel_naam=naam,
             titel_datums=f"{geboorte} – {overlijden}" if geboorte and overlijden else None,
-            titel_bijzin=zin,
-            ratio_mode="cover",
-            repeat_if_insufficient=True
+            titel_bijzin=zin
         )
 
-        st.success("✅ De presentatie is klaar! Klik hieronder om te downloaden:")
+        st.success("✅ De presentatie is klaar!")
         with open(resultaat, "rb") as f:
             st.download_button(
                 label="📥 Download presentatie (PPTX)",
