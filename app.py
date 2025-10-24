@@ -63,41 +63,55 @@ st.title("🌿 Warme Uitvaartassistent")
 st.write("We helpen u graag bij het maken van een warme en liefdevolle presentatie 🌿")
 st.divider()
 
-# ✅ URL naam reconstructie (dé fix)
+# ✅ URL naam reconstructie met volledige correctie
 query_params = st.query_params
-
 naam_dierbare = ""
 
+# Combineer alle mogelijke delen (Streamlit splitst soms per letter)
 for key, val in query_params.items():
     if key.startswith("eerbetoon"):
-        # Sleutel + waarde kunnen letters bevatten
         naam_dierbare += key.replace("eerbetoon", "")
         naam_dierbare += "".join(val)
 
-# ✅ ongewenste letter-spaties verwijderen
-naam_dierbare = naam_dierbare.replace(" ", "")
+# Decoderen en opschonen
+naam_dierbare = urllib.parse.unquote(naam_dierbare).strip()
 
-# ✅ naam weer in woorden opdelen op basis van hoofdletters
+# ✅ Dubbele of onjuiste spaties verwijderen
+while "  " in naam_dierbare:
+    naam_dierbare = naam_dierbare.replace("  ", " ")
+
+# ✅ Typografische varianten corrigeren
+naam_dierbare = (
+    naam_dierbare
+    .replace("–", "-")
+    .replace("—", "-")
+    .replace(" - ", "-")
+    .replace("- ", "-")
+    .replace(" -", "-")
+)
+
+# ✅ Voor alle zekerheid: eerste letter hoofdletter
 if naam_dierbare:
-    naam_parts = re.findall(r"[A-Z][a-zà-ÿ\-]*", naam_dierbare)
-    naam_dierbare = " ".join(naam_parts).strip()
+    naam_dierbare = naam_dierbare[0].upper() + naam_dierbare[1:]
+
+# Debug (kan later weg)
+# st.write("✅ Herkende naam voor API:", repr(naam_dierbare))
 
 fotos = []
 eerbetoon = {}
 
 if naam_dierbare:
-    # ✅ Eerste poging: naam direct
+    # Eerste poging: naam direct gebruiken
     fotos, eerbetoon = api_haal_eerbetoon_data(naam_dierbare)
 
-    # ✅ Tweede poging: ID > naam > foto’s
+    # Tweede poging: als het een ID is
     if not fotos and len(naam_dierbare) > 10:
-        mogelijk = api_haal_naam_via_id(naam_dierbare)
-        if mogelijk:
-            naam_dierbare = mogelijk
+        mogelijke_naam = api_haal_naam_via_id(naam_dierbare)
+        if mogelijke_naam:
+            naam_dierbare = mogelijke_naam
             fotos, eerbetoon = api_haal_eerbetoon_data(naam_dierbare)
 else:
-    st.info("🌱 Vul hieronder de naam van uw dierbare in om te beginnen.")
-
+    st.info("🌿 Vul hieronder de naam van uw dierbare in om te beginnen.")
 
 # ===================== Formulier =====================
 st.subheader("Gegevens van uw dierbare")
