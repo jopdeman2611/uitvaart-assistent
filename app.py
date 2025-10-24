@@ -5,7 +5,7 @@ import requests
 from dotenv import load_dotenv
 from scripts.maak_presentatie import maak_presentatie_automatisch
 
-# ===== BASISINSTELLINGEN =====
+# ===================== Config =====================
 st.set_page_config(page_title="Warme Uitvaartassistent", page_icon="🌿", layout="centered")
 load_dotenv()
 
@@ -13,21 +13,24 @@ STREAMLIT_API_KEY = st.secrets.get("STREAMLIT_API_KEY") or os.getenv("STREAMLIT_
 BASE44_API_URL = "https://eerbetuiging.base44.app/api/functions/getGoedgekeurdeFotos"
 
 if not STREAMLIT_API_KEY:
-    st.error("❌ API-sleutel ontbreekt")
+    st.error("❌ Geen API-sleutel gevonden — neem aub contact op met beheerder.")
     st.stop()
 
-# ===== HELPERS =====
+
+# ===================== Helpers =====================
 def api_haal_eerbetoon_data(naam_dierbare: str):
-    """Haalt foto's + gegevens uit Base44 op"""
+    """Haalt foto's + metadata op uit Base44."""
     try:
-        headers = {"X-API-Key": STREAMLIT_API_KEY, "Content-Type": "application/json"}
-        naam_dierbare_clean = eerbetoon_id.strip()  # verwijder spaties
-        payload = {"naam_dierbare": naam_dierbare_clean}
+        naam_dierbare = naam_dierbare.strip()
+        payload = {"naam_dierbare": naam_dierbare}
 
-
-        st.write("📤 Verstuurde payload:")
+        st.write("📡 Verstuurde payload:")
         st.json(payload)
 
+        headers = {
+            "X-API-Key": STREAMLIT_API_KEY,
+            "Content-Type": "application/json"
+        }
         r = requests.post(BASE44_API_URL, json=payload, headers=headers, timeout=15)
 
         st.write("📥 API Response:")
@@ -41,17 +44,18 @@ def api_haal_eerbetoon_data(naam_dierbare: str):
             return [], {}
 
         data = r.json() or {}
-        fotos = data.get("goedgekeurde_fotos") or data.get("fotos") or []
-        eerbetoon = data.get("eerbetoon") or {}
+
+        fotos = data.get("goedgekeurde_fotos", []) or []
+        eerbetoon = data.get("eerbetoon", {}) or {}
 
         return fotos, eerbetoon
 
     except Exception as e:
-        st.error(f"⚠️ Base44 foutmelding: {e}")
+        st.error(f"⚠️ Base44 fout: {e}")
         return [], {}
 
-def format_date(date_str: str):
-    """YYYY-MM-DD → DD-MM-YYYY"""
+
+def format_date(date_str):
     if not date_str:
         return ""
     try:
@@ -61,26 +65,24 @@ def format_date(date_str: str):
         return date_str
 
 
-# ===== UI START =====
+# ===================== UI =====================
 st.title("🌿 Warme Uitvaartassistent")
 
 st.divider()
 
-# ====== URL-Parameter uitlezen ======
+# ⬇ Naam ophalen uit URL-params
 query_params = st.query_params
-eerbetoon_values = query_params.get("eerbetoon", [])
+eerbetoon_param = query_params.get("eerbetoon", [""])[0]
+naam_dierbare = urllib.parse.unquote(eerbetoon_param).strip()
 
-# Join alle delen van de URL terug naar één naam (belangrijk!)
-eerbetoon_id = urllib.parse.unquote(" ".join(eerbetoon_values)).replace("+", " ").strip()
+st.write("🔍 Debug volledige naam_dierbare:", naam_dierbare)
 
-st.write("📌 Debug volledige eerbetoon_id:", eerbetoon_id)
+fotos, eerbetoon = api_haal_eerbetoon_data(naam_dierbare) if naam_dierbare else ([], {})
 
-fotos, eerbetoon = api_haal_eerbetoon_data(eerbetoon_id) if eerbetoon_id else ([], {})
-
-# ===== FORMULIER =====
+# ===================== Formulier =====================
 st.subheader("Gegevens van uw dierbare")
 
-naam = st.text_input("Naam van de dierbare",  # ✅ veldnaam aangepast
+naam = st.text_input("Naam van de dierbare",
                      value=eerbetoon.get("naam_dierbare", naam_dierbare))
 
 geboorte = st.text_input("Geboortedatum",
@@ -93,14 +95,14 @@ zin = st.text_input("Korte zin of motto (optioneel)")
 
 st.divider()
 
-# ===== SFEER =====
-st.subheader("Kies de sfeer")
+# ===================== Sfeer =====================
+st.subheader("Kies de sfeer van de presentatie")
 sfeer = st.radio("Sfeer", ["Rustig", "Bloemrijk", "Modern"], horizontal=True)
 sjabloon_pad = f"sjablonen/Sjabloon{sfeer}.pptx"
 
 st.divider()
 
-# ===== FOTO'S =====
+# ===================== Foto’s preview =====================
 if fotos:
     st.subheader("📸 Goedgekeurde foto's")
     cols = st.columns(3)
@@ -108,18 +110,17 @@ if fotos:
         with cols[i % 3]:
             st.image(foto, use_container_width=True)
 else:
-    st.info("ℹ️ Geen goedgekeurde foto's gevonden.")
+    st.info("ℹ️ Nog geen goedgekeurde foto's beschikbaar vanuit Base44.")
 
 st.divider()
 
-# ===== GENEREREN =====
+# ===================== Presentatie genereren =====================
 st.header("💛 Automatische presentatie")
 
 if st.button("🕊️ Maak de presentatie"):
-    with st.spinner("De presentatie wordt zorgvuldig samengesteld 🌿"):
-
+    with st.spinner("Een moment alstublieft... 🌿"):
         if not fotos:
-            st.error("❌ Geen foto’s beschikbaar uit Base44")
+            st.error("❌ Geen foto's. Controleer Base44.")
             st.stop()
 
         resultaat = maak_presentatie_automatisch(
@@ -127,10 +128,12 @@ if st.button("🕊️ Maak de presentatie"):
             base44_foto_urls=fotos,
             titel_naam=naam,
             titel_datums=f"{geboorte} – {overlijden}" if geboorte and overlijden else None,
-            titel_bijzin=zin
+            titel_bijzin=zin,
+            ratio_mode="cover",
+            repeat_if_insufficient=True
         )
 
-        st.success("✅ De presentatie is klaar!")
+        st.success("✅ Presentatie gereed! Download hieronder:")
         with open(resultaat, "rb") as f:
             st.download_button(
                 label="📥 Download presentatie (PPTX)",
