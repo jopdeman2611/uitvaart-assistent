@@ -64,12 +64,14 @@ st.title("🌿 Warme Uitvaartassistent")
 
 st.divider()
 
-# ===== EERBETOON ID UIT URL =====
+# ====== URL-Parameter uitlezen ======
 query_params = st.query_params
-eerbetoon_raw = query_params.get("eerbetoon", [""])[0]
-naam_dierbare = urllib.parse.unquote(eerbetoon_raw).strip()
+eerbetoon_values = query_params.get("eerbetoon", [])
 
-st.write("🔍 Debug naam_dierbare:", naam_dierbare)
+# Join alle delen van de URL terug naar één naam (belangrijk!)
+eerbetoon_id = urllib.parse.unquote(" ".join(eerbetoon_values)).replace("+", " ").strip()
+
+st.write("📌 Debug volledige eerbetoon_id:", eerbetoon_id)
 
 fotos, eerbetoon = api_haal_eerbetoon_data(naam_dierbare) if naam_dierbare else ([], {})
 
