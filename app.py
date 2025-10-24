@@ -119,7 +119,6 @@ st.subheader("Gegevens van uw dierbare")
 naam = eerbetoon.get("naam_dierbare", naam_dierbare)
 geboorte = format_date(eerbetoon.get("geboortedatum", ""))
 overlijden = format_date(eerbetoon.get("overlijdensdatum", ""))
-zin = eerbetoon.get("zin", "")  # of leeg indien niet aanwezig
 
 st.markdown(f"**Naam van dierbare**: {naam}")
 st.markdown(f"**Geboortedatum**: {geboorte if geboorte else '—'}")
