@@ -25,17 +25,19 @@ def api_haal_eerbetoon_data(naam_dierbare: str):
         payload = {"naam_dierbare": naam_dierbare}
         r = requests.post(BASE44_API_URL, json=payload, headers=headers, timeout=15)
 
-        data = r.json() if r.status_code == 200 else {}
+        if r.status_code != 200:
+            return [], {}
 
-        return data.get("goedgekeurde_fotos", []) or [], data.get("eerbetoon", {}) or {}
+        data = r.json() or {}
+        return data.get("goedgekeurde_fotos", []), data.get("eerbetoon", {})
 
     except Exception as e:
-        st.error(f"⚠️ Fout bij ophalen gegevens: {e}")
+        st.error(f"⚠️ Base44 fout: {e}")
         return [], {}
 
 
 def format_date(date_str: str):
-    """Converteert YYYY-MM-DD → DD-MM-YYYY"""
+    """YYYY-MM-DD -> DD-MM-YYYY"""
     if not date_str:
         return ""
     try:
@@ -47,18 +49,19 @@ def format_date(date_str: str):
 
 # ====== UI START ======
 st.title("🌿 Warme Uitvaartassistent")
-st.write("We helpen u graag bij het maken van een liefdevolle herinneringspresentatie.")
+st.write("We helpen u met een liefdevolle en rustige presentatie 🌿")
 
 st.divider()
 
 # ====== URL-Parameter uitlezen ======
 query_params = st.query_params
-eerbetoon_param = query_params.get("eerbetoon", ["onbekend"])[0]
-naam_dierbare = urllib.parse.unquote(eerbetoon_param)
+eerbetoon_id = query_params.get("eerbetoon", ["onbekend"])[0]
+naam_dierbare = urllib.parse.unquote(eerbetoon_id)
 
 fotos, eerbetoon = api_haal_eerbetoon_data(naam_dierbare) if naam_dierbare != "onbekend" else ([], {})
 
-# ====== FORMULIER (Automatisch ingevuld) ======
+
+# ====== FORMULIER MET AUTO-INVULLING ======
 st.subheader("Gegevens van uw dierbare")
 
 naam = st.text_input(
@@ -80,43 +83,47 @@ zin = st.text_input("Korte zin of motto (optioneel)")
 
 st.divider()
 
+
 # ====== SFEERKEUZE ======
 st.subheader("Kies de sfeer van de presentatie")
 sfeer = st.radio("Sfeer", ["Rustig", "Bloemrijk", "Modern"], horizontal=True)
+
 sjabloon_pad = f"sjablonen/Sjabloon{sfeer}.pptx"
 
 st.divider()
 
+
 # ====== FOTO PREVIEW ======
 if fotos:
-    st.subheader("📸 Goedgekeurde foto's")
+    st.subheader("📸 Goedgekeurde foto's uit Base44")
     cols = st.columns(3)
     for i, url in enumerate(fotos):
         with cols[i % 3]:
             st.image(url, use_container_width=True)
 else:
-    st.info("ℹ️ Er zijn nog geen goedgekeurde foto's beschikbaar.")
+    st.info("ℹ️ Nog geen goedgekeurde foto's beschikbaar vanuit Base44.")
 
 st.divider()
 
 
-# ====== GENEREREN ======
+# ====== GENEREREN VAN UITVAARTPRESENTATIE ======
 st.header("💛 Automatische presentatie")
 
 if st.button("🕊️ Maak de presentatie"):
-    with st.spinner("De foto's worden zorgvuldig geplaatst... 🌿"):
+    with st.spinner("Even geduld... ik zet alles mooi voor u klaar 🌿"):
+
         if not fotos:
-            st.error("❌ Geen foto's beschikbaar uit Base44.")
+            st.error("❌ Geen foto's beschikbaar. Controleer Base44.")
             st.stop()
 
         resultaat = maak_presentatie_automatisch(
             sjabloon_pad=sjabloon_pad,
             base44_foto_urls=fotos,
             titel_naam=naam,
-            titel_datums=f"{geboorte} – {overlijden}",
+            titel_datums=f"{geboorte} – {overlijden}" if geboorte and overlijden else None,
             titel_bijzin=zin,
             ratio_mode="cover",
-            repeat_if_insufficient=True,
+            repeat_if_insufficient=True
         )
 
         st.success("✅ De presentatie is klaar!")
