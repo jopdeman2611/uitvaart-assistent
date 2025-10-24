@@ -16,31 +16,19 @@ if not STREAMLIT_API_KEY:
     st.error("❌ Geen API-sleutel gevonden — neem aub contact op met beheerder.")
     st.stop()
 
-
 # ===================== Helpers =====================
 def api_haal_eerbetoon_data(naam_dierbare: str):
     """Haalt foto's + metadata op uit Base44."""
     try:
-        naam_dierbare = naam_dierbare.strip()
+        # Normaliseer streepjes (belangrijk voor exacte match!)
+        naam_dierbare = naam_dierbare.strip().replace("–", "-").replace("—", "-")
+
         payload = {"naam_dierbare": naam_dierbare}
+        headers = {"X-API-Key": STREAMLIT_API_KEY, "Content-Type": "application/json"}
 
-        st.write("📡 Verstuurde payload:")
-        st.json(payload)
-
-        headers = {
-            "X-API-Key": STREAMLIT_API_KEY,
-            "Content-Type": "application/json"
-        }
         r = requests.post(BASE44_API_URL, json=payload, headers=headers, timeout=15)
 
-        st.write("📥 API Response:")
-        try:
-            st.json(r.json())
-        except:
-            st.write(r.text)
-
         if r.status_code != 200:
-            st.warning(f"⚠️ Base44 gaf fout terug (status {r.status_code})")
             return [], {}
 
         data = r.json() or {}
@@ -48,13 +36,11 @@ def api_haal_eerbetoon_data(naam_dierbare: str):
         eerbetoon = data.get("eerbetoon", {}) or {}
 
         return fotos, eerbetoon
-
-    except Exception as e:
-        st.error(f"⚠️ Base44 fout: {e}")
+    except Exception:
         return [], {}
 
-
 def format_date(date_str):
+    """YYYY-MM-DD → DD-MM-YYYY"""
     if not date_str:
         return ""
     try:
@@ -63,42 +49,39 @@ def format_date(date_str):
     except:
         return date_str
 
-
 # ===================== UI =====================
 st.title("🌿 Warme Uitvaartassistent")
+st.write("We helpen u graag bij het maken van een warme en liefdevolle presentatie 🌿")
+
 st.divider()
 
 # ✅ URL parameter uitlezen
 query_params = st.experimental_get_query_params()
 eerbetoon_raw = query_params.get("eerbetoon", [""])[0]
 
-st.write("🔍 Debug: ontvangen URL naam:", repr(eerbetoon_raw))
-st.write("📏 Lengte ontvangen naam:", len(eerbetoon_raw))
-
-# ✅ Correcte naam reconstrueren → weghalen foutieve per-letter spacing
+# ✅ Correcte naam reconstrueren → fix dubbele spaties en letter spacing
 naam_dierbare = " ".join(eerbetoon_raw.split())
-
-st.write("✅ Debug: naam_dierbare gebruikt voor API:", repr(naam_dierbare))
+naam_dierbare = naam_dierbare.replace("–", "-").replace("—", "-")
 
 # ✅ Slechts 1 API-call
-fotos, eerbetoon = api_haal_eerbetoon_data(naam_dierbare)
+fotos, eerbetoon_data = api_haal_eerbetoon_data(naam_dierbare)
 
 # ===================== Formulier =====================
 st.subheader("Gegevens van uw dierbare")
 
 naam = st.text_input(
-    "Naam van de overledene",
-    value=eerbetoon.get("naam_dierbare", naam_dierbare)
+    "Naam van de dierbare",
+    value=eerbetoon_data.get("naam_dierbare", naam_dierbare)
 )
 
 geboorte = st.text_input(
     "Geboortedatum",
-    value=format_date(eerbetoon.get("geboortedatum", ""))
+    value=format_date(eerbetoon_data.get("geboortedatum", ""))
 )
 
 overlijden = st.text_input(
     "Overlijdensdatum",
-    value=format_date(eerbetoon.get("overlijdensdatum", ""))
+    value=format_date(eerbetoon_data.get("overlijdensdatum", ""))
 )
 
 zin = st.text_input("Korte zin of motto (optioneel)")
