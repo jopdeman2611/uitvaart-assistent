@@ -116,8 +116,6 @@ else:
 # ===================== Formulier =====================
 st.subheader("Gegevens van uw dierbare")
 
-st.subheader("Gegevens van uw dierbare")
-
 naam = eerbetoon.get("naam_dierbare", naam_dierbare)
 geboorte = format_date(eerbetoon.get("geboortedatum", ""))
 overlijden = format_date(eerbetoon.get("overlijdensdatum", ""))
