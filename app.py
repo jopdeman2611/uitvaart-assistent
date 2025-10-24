@@ -25,11 +25,12 @@ def api_haal_eerbetoon_data(naam_dierbare: str):
         payload = {"naam_dierbare": naam_dierbare}
         r = requests.post(BASE44_API_URL, json=payload, headers=headers, timeout=15)
 
-        if r.status_code != 200:
-            return [], {}
+        data = r.json() if r.status_code == 200 else {}
 
-        data = r.json() or {}
-        return data.get("goedgekeurde_fotos", []), data.get("eerbetoon", {})
+        st.write("🔍 Base44 API Response:")
+        st.json(data)
+
+        return data.get("goedgekeurde_fotos", []) or [], data.get("eerbetoon", {}) or {}
 
     except Exception as e:
         st.error(f"⚠️ Base44 fout: {e}")
