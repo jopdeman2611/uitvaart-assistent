@@ -21,7 +21,8 @@ def api_haal_eerbetoon_data(naam_dierbare: str):
     """Haalt foto's + metadata op uit Base44."""
     try:
         headers = {"X-API-Key": STREAMLIT_API_KEY, "Content-Type": "application/json"}
-        payload = {"naam": naam_dierbare}  # ✅ BELANGRIJK → juiste key voor Base44
+        payload = {"naam_dierbare": naam_dierbare}
+        # ✅ BELANGRIJK → juiste key voor Base44
 
         r = requests.post(BASE44_API_URL, json=payload, headers=headers, timeout=15)
 
@@ -67,10 +68,12 @@ st.write("We helpen u graag bij het maken van een warme en liefdevolle presentat
 
 st.divider()
 
-# ====== NIEUW: URL-Parameter uitlezen ======
+# ====== URL-Parameter uitlezen ======
 query_params = st.query_params
-eerbetoon_param = query_params.get("eerbetoon", [""])[0]
-naam_dierbare = urllib.parse.unquote(eerbetoon_param).strip()
+eerbetoon_values = query_params.get("eerbetoon", [""])
+naam_dierbare = urllib.parse.unquote(" ".join(eerbetoon_values)).strip()
+st.write("📌 Debug naam_dierbare:", naam_dierbare)
+
 
 fotos, eerbetoon = api_haal_eerbetoon_data(naam_dierbare) if naam_dierbare else ([], {})
 
