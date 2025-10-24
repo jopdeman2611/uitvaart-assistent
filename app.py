@@ -24,23 +24,27 @@ if not STREAMLIT_API_KEY:
 
 # --- FUNCTIE: FOTO'S OPHALEN ---
 def haal_goedgekeurde_fotos_op(naam_dierbare):
-    """Vraagt goedgekeurde foto's op uit Base44 via POST-request."""
+    """Vraagt goedgekeurde foto's én de gegevens van de overledene op."""
     try:
         headers = {"X-API-Key": STREAMLIT_API_KEY, "Content-Type": "application/json"}
         payload = {"naam_dierbare": naam_dierbare}
         response = requests.post(BASE44_API_URL, json=payload, headers=headers)
+
         if response.status_code == 200:
             data = response.json()
-            if data.get("success") and "goedgekeurde_fotos" in data:
-                return data["goedgekeurde_fotos"]
-            else:
-                return []
-        else:
-            st.error(f"❌ Fout bij ophalen foto's ({response.status_code})")
-            return []
+
+            fotos = data.get("goedgekeurde_fotos", [])
+            eerbetoon_data = data.get("eerbetoon", {})
+
+            return fotos, eerbetoon_data
+
+        st.error(f"❌ Fout bij ophalen: status {response.status_code}")
+        return [], {}
+
     except Exception as e:
         st.error(f"⚠️ Er ging iets mis: {e}")
-        return []
+        return [], {}
+
 
 # --- TITEL & INTRO ---
 st.title("🌿 Warme Uitvaartassistent")
@@ -48,13 +52,21 @@ st.write("Ik help u graag bij het samenstellen van een warme en liefdevolle pres
 
 st.divider()
 
-# --- 1. FORMULIER VOOR GEGEVENS ---
-naam = st.text_input("Naam van de overledene")
-geboorte = st.text_input("Geboortedatum")
-overlijden = st.text_input("Overlijdensdatum")
+# --- 1. AUTOMATISCH INVULLEN GEGEVENS UIT BASE44 ---
+
+# Als er via de URL een eerbetoon-ID is meegegeven → data ophalen
+fotos, eerbetoon = haal_goedgekeurde_fotos_op(naam_dierbare) if naam_dierbare != "onbekend" else ([], {})
+
+st.subheader("Gegevens van uw dierbare")
+
+# Automatisch invullen, familie kan altijd aanpassen ✨
+naam = st.text_input("Naam van de overledene", value=eerbetoon.get("naam", ""))
+geboorte = st.text_input("Geboortedatum", value=eerbetoon.get("geboortedatum", ""))
+overlijden = st.text_input("Overlijdensdatum", value=eerbetoon.get("overlijdensdatum", ""))
 zin = st.text_input("Korte zin of motto (optioneel)")
 
 st.divider()
+
 
 # --- 2. SFEERKEUZE ---
 st.subheader("Kies de sfeer die past bij het afscheid")
