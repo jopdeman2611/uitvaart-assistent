@@ -123,7 +123,6 @@ overlijden = format_date(eerbetoon.get("overlijdensdatum", ""))
 st.markdown(f"**Naam van dierbare**: {naam}")
 st.markdown(f"**Geboortedatum**: {geboorte if geboorte else '—'}")
 st.markdown(f"**Overlijdensdatum**: {overlijden if overlijden else '—'}")
-st.markdown(f"**Korte zin / motto**: {zin if zin else '—'}")
 
 st.divider()
 
