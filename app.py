@@ -67,7 +67,7 @@ st.divider()
 # ===== EERBETOON ID UIT URL =====
 query_params = st.query_params
 eerbetoon_raw = query_params.get("eerbetoon", [""])[0]
-naam_dierbare = urllib.parse.unquote(eerbetoon_raw).replace("+", " ").strip()
+naam_dierbare = urllib.parse.unquote(eerbetoon_raw).strip()
 
 st.write("🔍 Debug naam_dierbare:", naam_dierbare)
 
