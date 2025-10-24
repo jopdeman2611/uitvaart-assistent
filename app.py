@@ -21,36 +21,24 @@ if not STREAMLIT_API_KEY:
 def api_haal_eerbetoon_data(naam_dierbare: str):
     """Haalt foto's + metadata op uit Base44."""
     try:
-        naam_dierbare = naam_dierbare.strip()
-        payload = {"naam_dierbare": naam_dierbare}
-
-        st.write("📡 Verstuurde payload:")
-        st.json(payload)
-
+        payload = {"naam_dierbare": naam_dierbare.strip()}
         headers = {
             "X-API-Key": STREAMLIT_API_KEY,
             "Content-Type": "application/json"
         }
+
         r = requests.post(BASE44_API_URL, json=payload, headers=headers, timeout=15)
+        data = r.json() if r.status_code == 200 else {}
 
-        st.write("📥 API Response:")
-        try:
-            st.json(r.json())
-        except:
-            st.write(r.text)
-
-        if r.status_code != 200:
-            st.warning(f"⚠️ Base44 gaf fout terug (status {r.status_code})")
+        if not data.get("success"):
             return [], {}
 
-        data = r.json() or {}
         fotos = data.get("goedgekeurde_fotos", []) or []
         eerbetoon = data.get("eerbetoon", {}) or {}
 
         return fotos, eerbetoon
 
-    except Exception as e:
-        st.error(f"⚠️ Base44 fout: {e}")
+    except Exception:
         return [], {}
 
 
@@ -66,21 +54,16 @@ def format_date(date_str):
 
 # ===================== UI =====================
 st.title("🌿 Warme Uitvaartassistent")
+st.write("We helpen u graag bij het maken van een warme en liefdevolle presentatie.")
+
 st.divider()
 
-# ✅ URL parameter uitlezen
-query_params = st.experimental_get_query_params()
-eerbetoon_raw = query_params.get("eerbetoon", [""])[0]
+# Naam ophalen uit URL
+query_params = st.query_params
+naam_from_url = query_params.get("eerbetoon", [""])[0]
+naam_dierbare = " ".join(naam_from_url.split()).strip()
 
-st.write("🔍 Debug: ontvangen URL naam:", repr(eerbetoon_raw))
-st.write("📏 Lengte ontvangen naam:", len(eerbetoon_raw))
-
-# ✅ Correcte naam reconstrueren → weghalen foutieve per-letter spacing
-naam_dierbare = " ".join(eerbetoon_raw.split())
-
-st.write("✅ Debug: naam_dierbare gebruikt voor API:", repr(naam_dierbare))
-
-# ✅ Slechts 1 API-call
+# ✅ Base44 ophalen
 fotos, eerbetoon = api_haal_eerbetoon_data(naam_dierbare)
 
 # ===================== Formulier =====================
@@ -105,7 +88,7 @@ zin = st.text_input("Korte zin of motto (optioneel)")
 
 st.divider()
 
-# ===================== Sfeer =====================
+# ===================== Sfeerkeuze =====================
 st.subheader("Kies de sfeer van de presentatie")
 sfeer = st.radio("Sfeer", ["Rustig", "Bloemrijk", "Modern"], horizontal=True)
 sjabloon_pad = f"sjablonen/Sjabloon{sfeer}.pptx"
@@ -116,22 +99,22 @@ st.divider()
 if fotos:
     st.subheader("📸 Goedgekeurde foto's")
     cols = st.columns(3)
-    for i, foto in enumerate(fotos):
+    for i, url in enumerate(fotos):
         with cols[i % 3]:
-            st.image(foto, use_container_width=True)
+            st.image(url, use_container_width=True)
 else:
     st.info("ℹ️ Nog geen goedgekeurde foto's beschikbaar vanuit Base44.")
 
 st.divider()
 
-# ===================== Genereer Presentatie =====================
+# ===================== Presentatie genereren =====================
 st.header("💛 Automatische presentatie")
 
 if st.button("🕊️ Maak de presentatie"):
-    with st.spinner("Een moment alstublieft... 🌿"):
+    with st.spinner("Een moment alstublieft... de presentatie wordt zorgvuldig samengesteld 🌿"):
 
         if not fotos:
-            st.error("❌ Geen foto's. Controleer Base44.")
+            st.error("❌ Geen foto's beschikbaar. Controleer Base44.")
             st.stop()
 
         resultaat = maak_presentatie_automatisch(
@@ -141,10 +124,10 @@ if st.button("🕊️ Maak de presentatie"):
             titel_datums=f"{geboorte} – {overlijden}" if geboorte and overlijden else None,
             titel_bijzin=zin,
             ratio_mode="cover",
-            repeat_if_insufficient=True
+            repeat_if_insufficient=True,
         )
 
-        st.success("✅ Presentatie gereed! Download hieronder:")
+        st.success("✅ De presentatie is klaar! Klik hieronder om te downloaden:")
         with open(resultaat, "rb") as f:
             st.download_button(
                 label="📥 Download presentatie (PPTX)",
