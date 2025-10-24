@@ -21,7 +21,9 @@ def api_haal_eerbetoon_data(naam_dierbare: str):
     """Haalt foto's + gegevens uit Base44 op"""
     try:
         headers = {"X-API-Key": STREAMLIT_API_KEY, "Content-Type": "application/json"}
-        payload = {"naam_dierbare": naam_dierbare}  # ✅ juiste payload
+        naam_dierbare_clean = eerbetoon_id.strip()  # verwijder spaties
+        payload = {"naam_dierbare": naam_dierbare_clean}
+
 
         st.write("📤 Verstuurde payload:")
         st.json(payload)
