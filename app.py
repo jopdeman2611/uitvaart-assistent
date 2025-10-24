@@ -5,6 +5,7 @@ import requests
 from dotenv import load_dotenv
 from scripts.maak_presentatie import maak_presentatie_automatisch
 
+
 # ====== BASISINSTELLINGEN ======
 st.set_page_config(page_title="Warme Uitvaartassistent", page_icon="🌿", layout="centered")
 load_dotenv()
@@ -13,32 +14,30 @@ STREAMLIT_API_KEY = st.secrets.get("STREAMLIT_API_KEY") or os.getenv("STREAMLIT_
 BASE44_API_URL = "https://eerbetuiging.base44.app/api/functions/getGoedgekeurdeFotos"
 
 if not STREAMLIT_API_KEY:
-    st.error("❌ Geen API-sleutel gevonden — neem contact op met beheerder.")
+    st.error("❌ Geen API-sleutel gevonden — neem aub contact op met de beheerder.")
     st.stop()
 
 
 # ====== HELPERS ======
-def api_haal_eerbetoon_data(naam_dierbare: str):
+def api_haal_eerbetoon_data(eerbetoon_id: str):
     """Haalt foto's + metadata op uit Base44."""
     try:
         headers = {"X-API-Key": STREAMLIT_API_KEY, "Content-Type": "application/json"}
-        payload = {"naam_dierbare": naam_dierbare}
+        payload = {"eerbetoon_id": eerbetoon_id}
         r = requests.post(BASE44_API_URL, json=payload, headers=headers, timeout=15)
 
-        data = r.json() if r.status_code == 200 else {}
+        if r.status_code != 200:
+            return [], {}
 
-        st.write("🔍 Base44 API Response:")
-        st.json(data)
-
+        data = r.json() or {}
         return data.get("goedgekeurde_fotos", []) or [], data.get("eerbetoon", {}) or {}
 
-    except Exception as e:
-        st.error(f"⚠️ Base44 fout: {e}")
+    except:
         return [], {}
 
 
 def format_date(date_str: str):
-    """YYYY-MM-DD -> DD-MM-YYYY"""
+    """YYYY-MM-DD → DD-MM-YYYY"""
     if not date_str:
         return ""
     try:
@@ -50,19 +49,21 @@ def format_date(date_str: str):
 
 # ====== UI START ======
 st.title("🌿 Warme Uitvaartassistent")
-st.write("We helpen u met een liefdevolle en rustige presentatie 🌿")
+st.write("We helpen u graag bij het maken van een liefdevolle presentatie 🌿")
 
 st.divider()
 
-# ====== URL-Parameter uitlezen ======
+
+# ====== EERBETOON-ID UIT URL ======
 query_params = st.query_params
-eerbetoon_id = query_params.get("eerbetoon", ["onbekend"])[0]
-naam_dierbare = urllib.parse.unquote(eerbetoon_id)
+eerbetoon_id = query_params.get("eerbetoon", [""])[0].strip()
+eerbetoon_id = urllib.parse.unquote(eerbetoon_id)
 
-fotos, eerbetoon = api_haal_eerbetoon_data(naam_dierbare) if naam_dierbare != "onbekend" else ([], {})
+# Ophalen Base44 data
+fotos, eerbetoon = api_haal_eerbetoon_data(eerbetoon_id) if eerbetoon_id else ([], {})
 
 
-# ====== FORMULIER MET AUTO-INVULLING ======
+# ====== FORMULIER ======
 st.subheader("Gegevens van uw dierbare")
 
 naam = st.text_input(
@@ -107,12 +108,11 @@ else:
 st.divider()
 
 
-# ====== GENEREREN VAN UITVAARTPRESENTATIE ======
+# ====== GENEREREN ======
 st.header("💛 Automatische presentatie")
 
 if st.button("🕊️ Maak de presentatie"):
-    with st.spinner("Even geduld... ik zet alles mooi voor u klaar 🌿"):
-
+    with st.spinner("Een moment alstublieft... ik zet alles mooi voor u klaar 🌿"):
         if not fotos:
             st.error("❌ Geen foto's beschikbaar. Controleer Base44.")
             st.stop()
