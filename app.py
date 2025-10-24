@@ -4,6 +4,8 @@ import streamlit as st
 import requests
 from dotenv import load_dotenv
 from scripts.maak_presentatie import maak_presentatie_automatisch
+from urllib.parse import unquote
+import re
 
 # ===================== Config =====================
 st.set_page_config(page_title="Warme Uitvaartassistent", page_icon="🌿", layout="centered")
@@ -37,7 +39,6 @@ def api_haal_naam_via_id(eerbetoon_id: str):
     try:
         headers = {"X-API-Key": STREAMLIT_API_KEY, "Content-Type": "application/json"}
         r = requests.post(BASE44_EERBETOON_BY_ID_URL, json={"id": eerbetoon_id}, headers=headers, timeout=15)
-
         if r.status_code != 200:
             return None
 
@@ -59,44 +60,43 @@ def format_date(date_str):
 
 # ===================== UI =====================
 st.title("🌿 Warme Uitvaartassistent")
+st.write("We helpen u graag bij het maken van een warme en liefdevolle presentatie 🌿")
 st.divider()
 
-# ✅ URL parameters uitlezen
+# ✅ URL naam reconstructie (dé fix)
 query_params = st.query_params
 
-# ✅ Naamfragmenten verzamelen
-naam_fragmenten = []
+naam_dierbare = ""
 
-# Alle query keys controleren
 for key, val in query_params.items():
     if key.startswith("eerbetoon"):
-        # sleutel "eerbetoon" zelf heeft de eerste letter
-        naam_fragmenten.append(key.replace("eerbetoon", "")) 
-        # waarde bevat meestal de rest
-        naam_fragmenten.append(" ".join(val)) 
+        # Sleutel + waarde kunnen letters bevatten
+        naam_dierbare += key.replace("eerbetoon", "")
+        naam_dierbare += "".join(val)
 
-# Fragmenten samenvoegen
-naam_dierbare = "".join(naam_fragmenten).strip()
+# ✅ ongewenste letter-spaties verwijderen
+naam_dierbare = naam_dierbare.replace(" ", "")
 
-# ✅ dubbele spaties en rare streepjes oplossen
-naam_dierbare = " ".join(naam_dierbare.split())
-naam_dierbare = naam_dierbare.replace("–", "-").replace("—", "-")
+# ✅ naam weer in woorden opdelen op basis van hoofdletters
+if naam_dierbare:
+    naam_parts = re.findall(r"[A-Z][a-zà-ÿ\-]*", naam_dierbare)
+    naam_dierbare = " ".join(naam_parts).strip()
 
 fotos = []
 eerbetoon = {}
 
 if naam_dierbare:
-    # ✅ Eerste poging: behandelen als naam
+    # ✅ Eerste poging: naam direct
     fotos, eerbetoon = api_haal_eerbetoon_data(naam_dierbare)
 
-    # ✅ Tweede poging: als het een ID is
+    # ✅ Tweede poging: ID > naam > foto’s
     if not fotos and len(naam_dierbare) > 10:
-        mogelijke_naam = api_haal_naam_via_id(naam_dierbare)
-        if mogelijke_naam:
-            naam_dierbare = mogelijke_naam
+        mogelijk = api_haal_naam_via_id(naam_dierbare)
+        if mogelijk:
+            naam_dierbare = mogelijk
             fotos, eerbetoon = api_haal_eerbetoon_data(naam_dierbare)
 else:
-    st.info("🌿 Vul hieronder de naam van uw dierbare in om te beginnen.")
+    st.info("🌱 Vul hieronder de naam van uw dierbare in om te beginnen.")
 
 
 # ===================== Formulier =====================
@@ -109,12 +109,16 @@ zin = st.text_input("Korte zin of motto (optioneel)")
 
 st.divider()
 
+
+# ===================== Sfeer =====================
 st.subheader("Kies de sfeer van de presentatie")
 sfeer = st.radio("Sfeer", ["Rustig", "Bloemrijk", "Modern"], horizontal=True)
 sjabloon_pad = f"sjablonen/Sjabloon{sfeer}.pptx"
 
 st.divider()
 
+
+# ===================== Foto preview =====================
 if fotos:
     st.subheader("📸 Goedgekeurde foto's")
     cols = st.columns(3)
@@ -126,13 +130,15 @@ else:
 
 st.divider()
 
+
+# ===================== Genereer Presentatie =====================
 st.header("💛 Automatische presentatie")
 
 if st.button("🕊️ Maak de presentatie"):
     with st.spinner("Een moment alstublieft... 🌿"):
 
         if not fotos:
-            st.error("❌ Er zijn nog geen foto's beschikbaar. Controleer Base44.")
+            st.error("❌ Er zijn nog geen foto's beschikbaar! Controleer Base44.")
             st.stop()
 
         resultaat = maak_presentatie_automatisch(
