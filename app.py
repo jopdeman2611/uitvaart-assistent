@@ -20,34 +20,23 @@ if not STREAMLIT_API_KEY:
 
 # ===================== Helpers =====================
 def api_haal_eerbetoon_data(naam_dierbare: str):
-    """Haalt foto's + metadata op uit Base44 op basis van naam."""
     try:
-        naam_dierbare = naam_dierbare.strip()
-        payload = {"naam_dierbare": naam_dierbare}
         headers = {"X-API-Key": STREAMLIT_API_KEY, "Content-Type": "application/json"}
-
-        r = requests.post(BASE44_API_URL, json=payload, headers=headers, timeout=15)
+        r = requests.post(BASE44_API_URL, json={"naam_dierbare": naam_dierbare}, headers=headers, timeout=15)
         if r.status_code != 200:
             return [], {}
-
         data = r.json() or {}
-        fotos = data.get("goedgekeurde_fotos", []) or []
-        eerbetoon = data.get("eerbetoon", {}) or {}
-        return fotos, eerbetoon
-
+        return data.get("goedgekeurde_fotos", []) or [], data.get("eerbetoon", {}) or {}
     except:
         return [], {}
 
 
 def api_haal_naam_via_id(eerbetoon_id: str):
-    """Haalt naam op wanneer de URL een hash/ID bevat i.p.v. een naam."""
     try:
         headers = {"X-API-Key": STREAMLIT_API_KEY, "Content-Type": "application/json"}
         r = requests.post(BASE44_EERBETOON_BY_ID_URL, json={"id": eerbetoon_id}, headers=headers, timeout=15)
-
         if r.status_code != 200:
             return None
-
         data = r.json() or {}
         return data.get("naam_dierbare")
     except:
@@ -68,9 +57,16 @@ def format_date(date_str):
 st.title("🌿 Warme Uitvaartassistent")
 st.divider()
 
-# ✅ URL parameter uitlezen (nieuwe Streamlit API)
+# ✅ URL parameter uitlezen
 query_params = st.query_params
-eerbetoon_raw = query_params.get("eerbetoon", [""])[0]
+
+# ✅ Combineer alle delen van eerbetoon weer tot één string
+eerbetoon_parts = []
+for key, value in query_params.items():
+    if key.startswith("eerbetoon"):
+        eerbetoon_parts.append(value[0])
+
+eerbetoon_raw = " ".join(eerbetoon_parts).strip()
 
 naam_dierbare = ""
 fotos = []
@@ -81,7 +77,7 @@ if eerbetoon_raw:
     naam_dierbare = " ".join(eerbetoon_raw.split())
     fotos, eerbetoon = api_haal_eerbetoon_data(naam_dierbare)
 
-    # ✅ Tweede poging: wanneer API niets vond → behandelen als ID/hash
+    # ✅ Tweede poging: behandelen als ID
     if not fotos and len(eerbetoon_raw) > 10:
         mogelijke_naam = api_haal_naam_via_id(eerbetoon_raw)
         if mogelijke_naam:
@@ -91,7 +87,6 @@ if eerbetoon_raw:
 
 # ===================== Formulier =====================
 st.subheader("Gegevens van uw dierbare")
-
 naam = st.text_input("Naam van de overledene", value=eerbetoon.get("naam_dierbare", naam_dierbare))
 geboorte = st.text_input("Geboortedatum", value=format_date(eerbetoon.get("geboortedatum", "")))
 overlijden = st.text_input("Overlijdensdatum", value=format_date(eerbetoon.get("overlijdensdatum", "")))
