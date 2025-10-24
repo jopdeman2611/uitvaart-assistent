@@ -69,7 +69,7 @@ st.title("🌿 Warme Uitvaartassistent")
 st.divider()
 
 # ✅ URL parameter uitlezen
-query_params = st.experimental_get_query_params()
+query_params = st.query_params
 eerbetoon_raw = query_params.get("eerbetoon", [""])[0]
 
 st.write("🔍 Debug: ontvangen URL naam:", repr(eerbetoon_raw))
