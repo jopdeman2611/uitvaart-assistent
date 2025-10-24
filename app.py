@@ -163,7 +163,6 @@ if st.button("🕊️ Maak de presentatie"):
             base44_foto_urls=fotos,
             titel_naam=naam,
             titel_datums=f"{geboorte} – {overlijden}" if geboorte and overlijden else None,
-            titel_bijzin=zin,
             ratio_mode="cover",
             repeat_if_insufficient=True
         )
