@@ -61,29 +61,34 @@ def format_date(date_str):
 st.title("🌿 Warme Uitvaartassistent")
 st.divider()
 
-# ✅ URL parameter uitlezen
+# ✅ URL parameters uitlezen (veilige parsing)
 query_params = st.query_params
 
-# ✅ Combineer alle delen van “eerbetoon” uit de URL
-eerbetoon_parts = []
+# Combineer alles in 1 string (zowel letters als woorden)
+param_values = []
+
 for key, val in query_params.items():
     if key.startswith("eerbetoon"):
-        eerbetoon_parts.append(val[0])
+        param_values.append(val[0])
+    else:
+        param_values.append(key)
 
-eerbetoon_raw = " ".join(eerbetoon_parts).strip()
+eerbetoon_raw = "".join(param_values).strip()
 
-naam_dierbare = ""
+# Fix spaties en streepjes
+naam_dierbare = " ".join(eerbetoon_raw.split())
+naam_dierbare = naam_dierbare.replace("–", "-").replace("—", "-")
+
 fotos = []
 eerbetoon = {}
 
-if eerbetoon_raw:
-    # ✅ Eerste poging: behandelen als naam
-    naam_dierbare = " ".join(eerbetoon_raw.split())
+if naam_dierbare:
+    # ✅ Eerst proberen als naam
     fotos, eerbetoon = api_haal_eerbetoon_data(naam_dierbare)
 
-    # ✅ Tweede poging: behandelen als ID/hash
-    if not fotos and len(eerbetoon_raw) > 10:
-        mogelijke_naam = api_haal_naam_via_id(eerbetoon_raw)
+    # ✅ Zo niet → interpretatie als ID/hash
+    if not fotos and len(naam_dierbare) > 10:
+        mogelijke_naam = api_haal_naam_via_id(naam_dierbare)
         if mogelijke_naam:
             naam_dierbare = mogelijke_naam
             fotos, eerbetoon = api_haal_eerbetoon_data(naam_dierbare)
