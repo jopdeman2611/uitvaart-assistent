@@ -56,7 +56,15 @@ st.write("We helpen u graag bij het maken van een warme en liefdevolle presentat
 st.divider()
 
 # ✅ URL parameter uitlezen
-query_params = st.experimental_get_query_params()
+params = st.query_params
+presentation_id = params.get("presentation_id", [None])[0]
+
+if presentation_id:
+    # Hier haal je de gegevens op uit je database
+    data = fetch_presentation_data(presentation_id)
+    display(data)
+else:
+    st.error("Geen presentatie gevonden.")
 eerbetoon_raw = query_params.get("eerbetoon", [""])[0]
 
 # ✅ Correcte naam reconstrueren → fix dubbele spaties en letter spacing
