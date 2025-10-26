@@ -47,7 +47,7 @@ def root():
 
 
 def _sjabloon_pad_from_id(sjabloon_id: str) -> str:
-    logging.debug(f"➡️ _sjabloon_pad_from_id({sjabloon_id})")
+    logging.debug(f"➡️ _sjabloon_pad_from_id gestart met: {sjabloon_id}")
 
     mapping = {
         "Rustig": "SjabloonRustig.pptx",
@@ -55,38 +55,32 @@ def _sjabloon_pad_from_id(sjabloon_id: str) -> str:
         "Modern": "SjabloonModern.pptx",
     }
 
+    logging.debug(f"🧭 Beschikbare mappings: {mapping}")
+
     if sjabloon_id not in mapping:
-        logging.error("❌ Onbekend sjabloon")
+        logging.error(f"❌ Onbekend sjabloon: {sjabloon_id}")
         raise HTTPException(status_code=400, detail="Onbekend sjabloon")
 
     file_name = mapping[sjabloon_id]
+    logging.debug(f"📄 Gekozen file_name = {file_name}")
+
     blob_path = f"sjablonen/{file_name}"
     local_path = f"/tmp/{file_name}"
 
-    if not BUCKET_NAME:
-        logging.error("❌ BUCKET_TEMPLATES ontbreekt!")
-        raise HTTPException(status_code=500, detail="Bucket ontbreekt")
-
-    logging.debug(f"🔎 Zoeken in bucket: {BUCKET_NAME}")
-    logging.debug(f"📁 Blob path: {blob_path}")
+    logging.debug(f"🗂 Blob pad in bucket: {blob_path}")
+    logging.debug(f"📌 Local path wordt: {local_path}")
 
     client = storage.Client()
     bucket = client.bucket(BUCKET_NAME)
     blob = bucket.blob(blob_path)
 
-    exists = blob.exists()
-    logging.debug(f"📌 Blob exists? {exists}")
+    logging.debug(f"🔍 Blob.exists() == {blob.exists()}")
 
-    if not exists:
-        logging.error("❌ Sjabloon niet gevonden in GCS!")
-        raise HTTPException(status_code=404, detail=f"Sjabloon niet gevonden: {sjabloon_id}")
-
-    logging.debug("📥 Downloaden sjabloon...")
     try:
-        blob.download_to_filename(local_path)
+        blob.reload()
+        logging.debug(f"📏 Grootte blob: {blob.size}")
     except Exception as e:
-        logging.exception("❌ Download fout")
-        raise HTTPException(status_code=500, detail=str(e))
+        logging.error(f"⚠️ Blob reload fout: {e}")
 
     logging.debug(f"✅ Presentatie sjabloon lokaal opgeslagen: {local_path}")
     return local_path
@@ -94,7 +88,7 @@ def _sjabloon_pad_from_id(sjabloon_id: str) -> str:
 
 @app.post("/generate")
 def generate(req: GenRequest, x_streamlit_key: str = Header(default="")):
-    logging.debug("🔐 API Key controleren...")
+    logging.debug(f"🚀 POST /generate met request: {req}")
 
     if not API_KEY or x_streamlit_key != API_KEY:
         logging.error("❌ Unauthorized request")
