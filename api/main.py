@@ -1,3 +1,20 @@
+import logging
+import sys
+
+# ✅ Forceer alle logging naar STDERR zodat Cloud Run het ziet
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    handlers=[logging.StreamHandler(sys.stderr)],
+    force=True
+)
+
+# ✅ Zet ook de Uvicorn loggers op DEBUG
+uvicorn_loggers = ["uvicorn", "uvicorn.error", "uvicorn.access"]
+for logger_name in uvicorn_loggers:
+    logging.getLogger(logger_name).setLevel(logging.DEBUG)
+
+
 os.environ["PYTHONUNBUFFERED"] = "1"
 from dotenv import load_dotenv
 load_dotenv()
@@ -12,17 +29,6 @@ from typing import List, Optional
 from google.cloud import storage
 from scripts.maak_presentatie import maak_presentatie_automatisch
 
-# ✅ Logging naar stderr zodat Cloud Run het ziet
-logging.basicConfig(
-    level=logging.DEBUG,
-    format="%(asctime)s [%(levelname)s] %(message)s",
-    handlers=[logging.StreamHandler(sys.stderr)],
-    force=True  # ✅ override Uvicorn logging
-)
-
-logging.getLogger().setLevel(logging.DEBUG)
-logging.getLogger("uvicorn.error").setLevel(logging.DEBUG)
-logging.getLogger("uvicorn.access").setLevel(logging.DEBUG)
 
 API_KEY = os.getenv("STREAMLIT_API_KEY")
 BUCKET_NAME = os.getenv("BUCKET_TEMPLATES")
