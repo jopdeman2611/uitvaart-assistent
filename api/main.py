@@ -1,40 +1,33 @@
 import logging
 import sys
+import os
+import traceback
+from dotenv import load_dotenv
 
-# ✅ Forceer alle logging naar STDERR zodat Cloud Run het ziet
+os.environ["PYTHONUNBUFFERED"] = "1"
+load_dotenv()
+
+# ✅ Logging direct naar stderr
 logging.basicConfig(
     level=logging.DEBUG,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    format="%(asctime)s [%(levelname)s] %(message)s",
     handlers=[logging.StreamHandler(sys.stderr)],
     force=True
 )
 
-# ✅ Zet ook de Uvicorn loggers op DEBUG
-uvicorn_loggers = ["uvicorn", "uvicorn.error", "uvicorn.access"]
-for logger_name in uvicorn_loggers:
+# ✅ Uvicorn logs ook op debug zetten
+for logger_name in ["uvicorn", "uvicorn.error", "uvicorn.access"]:
     logging.getLogger(logger_name).setLevel(logging.DEBUG)
 
-import sys
-import traceback
-
-# Log uncaught exceptions rechtstreeks naar stderr
+# ✅ Ongecatchte exceptions afdrukken
 def handle_exception(exc_type, exc_value, exc_traceback):
     if issubclass(exc_type, KeyboardInterrupt):
-        sys.__excepthook__(exc_type, exc_value, exc_traceback)
         return
-    print("🔥 UNCAUGHT EXCEPTION 🔥", file=sys.stderr)
+    print("\n🔥 UNCAUGHT EXCEPTION 🔥", file=sys.stderr)
     traceback.print_exception(exc_type, exc_value, exc_traceback, file=sys.stderr)
 
 sys.excepthook = handle_exception
 
-
-os.environ["PYTHONUNBUFFERED"] = "1"
-from dotenv import load_dotenv
-load_dotenv()
-
-import os
-import logging
-import sys
 from fastapi import FastAPI, HTTPException, Header
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
