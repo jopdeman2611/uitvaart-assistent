@@ -118,7 +118,6 @@ def _sjabloon_pad_from_id(sjabloon_id: str) -> str:
     return local_path
 
 
-
 @app.post("/generate")
 def generate(req: GenRequest, x_streamlit_key: str = Header(default="")):
     logging.debug(f"🚀 POST /generate met request: {req}")
