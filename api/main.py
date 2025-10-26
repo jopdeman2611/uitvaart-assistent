@@ -12,13 +12,17 @@ from typing import List, Optional
 from google.cloud import storage
 from scripts.maak_presentatie import maak_presentatie_automatisch
 
-# ✅ Logging naar stdout zodat Cloud Run het logt!
+# ✅ Logging naar stderr zodat Cloud Run het ziet
 logging.basicConfig(
     level=logging.DEBUG,
     format="%(asctime)s [%(levelname)s] %(message)s",
-    handlers=[logging.StreamHandler(sys.stdout)],
-    force=True  # ✅ OVERRULE UVICORN LOGGING
+    handlers=[logging.StreamHandler(sys.stderr)],
+    force=True  # ✅ override Uvicorn logging
 )
+
+logging.getLogger().setLevel(logging.DEBUG)
+logging.getLogger("uvicorn.error").setLevel(logging.DEBUG)
+logging.getLogger("uvicorn.access").setLevel(logging.DEBUG)
 
 API_KEY = os.getenv("STREAMLIT_API_KEY")
 BUCKET_NAME = os.getenv("BUCKET_TEMPLATES")
