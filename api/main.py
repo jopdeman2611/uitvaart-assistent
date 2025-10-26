@@ -24,7 +24,9 @@ class GenRequest(BaseModel):
     geboortedatum: Optional[str] = None
     overlijdensdatum: Optional[str] = None
     sjabloon: str
-    fotos: List[str]
+    fotos: List[str] = []
+    slagboom: Optional[bool] = False
+
 
 
 def _sjabloon_pad_from_id(sjabloon_id: str) -> str:
