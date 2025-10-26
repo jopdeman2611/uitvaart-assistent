@@ -33,24 +33,26 @@ def _sjabloon_pad_from_id(sjabloon_id: str) -> str:
     }
 
     if sjabloon_id not in mapping:
-        raise HTTPException(status_code=400, detail=f"Onbekend sjabloon '{sjabloon_id}'. Kies: {list(mapping.keys())}")
+        raise HTTPException(status_code=400,
+                            detail=f"Onbekend sjabloon '{sjabloon_id}'. Kies: {list(mapping.keys())}")
 
     file_name = mapping[sjabloon_id]
-    local_path = f"/tmp/{file_name}"  # Cloud Run: veilige schrijfmap
+    local_path = f"/tmp/{file_name}"
 
-    # ✅ Environment variable LAADT NU JUIST TIJDIG
     BUCKET_NAME = os.getenv("BUCKET_TEMPLATES")
     if not BUCKET_NAME:
-        raise HTTPException(status_code=500, detail="BUCKET_TEMPLATES ontbreekt als environment variable")
+        raise HTTPException(status_code=500, detail="BUCKET_TEMPLATES ontbreekt")
 
     client = storage.Client()
     bucket = client.bucket(BUCKET_NAME)
-    blob = bucket.blob(f"sjablonen/{file_name}")
+
+    # ✅ Geen subfolder meer — staat in root!
+    blob = bucket.blob(file_name)
 
     if not blob.exists():
-        raise HTTPException(status_code=404, detail=f"Sjabloonbestand ontbreekt in bucket: {sjabloon_id}")
+        raise HTTPException(status_code=404,
+                            detail=f"Sjabloonbestand ontbreekt in bucket: {file_name}")
 
-    # Download enkel wanneer nodig
     if not os.path.exists(local_path):
         blob.download_to_filename(local_path)
 
@@ -59,13 +61,14 @@ def _sjabloon_pad_from_id(sjabloon_id: str) -> str:
 
 @app.post("/generate")
 def generate(req: GenRequest, x_streamlit_key: str = Header(default="")):
-    # ✅ API Key check
     if not API_KEY or x_streamlit_key != API_KEY:
-        raise HTTPException(status_code=401, detail="Unauthorized API key")
+        raise HTTPException(status_code=401, detail="Unauthorized")
 
-    titel_datums = None
-    if req.geboortedatum and req.overlijdensdatum:
-        titel_datums = f"{req.geboortedatum} – {req.overlijdensdatum}"
+    titel_datums = (
+        f"{req.geboortedatum} – {req.overlijdensdatum}"
+        if req.geboortedatum and req.overlijdensdatum
+        else None
+    )
 
     sjabloon_path = _sjabloon_pad_from_id(req.sjabloon)
 
@@ -81,9 +84,8 @@ def generate(req: GenRequest, x_streamlit_key: str = Header(default="")):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Presentatie genereren mislukte: {str(e)}")
 
-    filename = "warme_uitvaart_presentatie.pptx"
     return FileResponse(
         pptx_path,
         media_type="application/vnd.openxmlformats-officedocument.presentationml.presentation",
-        filename=filename,
+        filename="warme_uitvaart_presentatie.pptx",
     )
