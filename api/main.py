@@ -1,4 +1,4 @@
-from dotenv import load_dotenv 
+from dotenv import load_dotenv
 load_dotenv()
 
 import os
@@ -10,8 +10,11 @@ from google.cloud import storage
 
 from scripts.maak_presentatie import maak_presentatie_automatisch
 
-# API Key
+# 🔑 API Key
 API_KEY = os.getenv("STREAMLIT_API_KEY")
+
+# 🪣 Één variabele voor de bucket — altijd dezelfde gebruiken
+BUCKET = os.getenv("BUCKET_TEMPLATES")
 
 app = FastAPI(title="Uitvaart Presentatie API")
 
@@ -33,25 +36,23 @@ def _sjabloon_pad_from_id(sjabloon_id: str) -> str:
     }
 
     if sjabloon_id not in mapping:
-        raise HTTPException(status_code=400,
-                            detail=f"Onbekend sjabloon '{sjabloon_id}'. Kies: {list(mapping.keys())}")
+        raise HTTPException(status_code=400, detail="Onbekend sjabloon")
 
     file_name = mapping[sjabloon_id]
     local_path = f"/tmp/{file_name}"
 
-    BUCKET_NAME = os.getenv("BUCKET_TEMPLATES")
-    if not BUCKET_NAME:
-        raise HTTPException(status_code=500, detail="BUCKET_TEMPLATES ontbreekt")
+    if not BUCKET:
+        raise HTTPException(status_code=500, detail="Bucket niet ingesteld")
 
     client = storage.Client()
-    bucket = client.bucket(BUCKET_NAME)
-
-    # ✅ Geen subfolder meer — staat in root!
-    blob = bucket.blob(file_name)
+    bucket = client.bucket(BUCKET)
+    blob = bucket.blob(file_name)  # ✅ sjablonen staan in de root
 
     if not blob.exists():
-        raise HTTPException(status_code=404,
-                            detail=f"Sjabloonbestand ontbreekt in bucket: {file_name}")
+        raise HTTPException(
+            status_code=404, 
+            detail=f"Sjabloon niet gevonden: {file_name} in bucket {BUCKET}"
+        )
 
     if not os.path.exists(local_path):
         blob.download_to_filename(local_path)
@@ -64,11 +65,9 @@ def generate(req: GenRequest, x_streamlit_key: str = Header(default="")):
     if not API_KEY or x_streamlit_key != API_KEY:
         raise HTTPException(status_code=401, detail="Unauthorized")
 
-    titel_datums = (
-        f"{req.geboortedatum} – {req.overlijdensdatum}"
-        if req.geboortedatum and req.overlijdensdatum
-        else None
-    )
+    titel_datums = None
+    if req.geboortedatum and req.overlijdensdatum:
+        titel_datums = f"{req.geboortedatum} – {req.overlijdensdatum}"
 
     sjabloon_path = _sjabloon_pad_from_id(req.sjabloon)
 
@@ -82,7 +81,7 @@ def generate(req: GenRequest, x_streamlit_key: str = Header(default="")):
             repeat_if_insufficient=True,
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Presentatie genereren mislukte: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
     return FileResponse(
         pptx_path,
