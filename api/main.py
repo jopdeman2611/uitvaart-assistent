@@ -14,6 +14,19 @@ uvicorn_loggers = ["uvicorn", "uvicorn.error", "uvicorn.access"]
 for logger_name in uvicorn_loggers:
     logging.getLogger(logger_name).setLevel(logging.DEBUG)
 
+import sys
+import traceback
+
+# Log uncaught exceptions rechtstreeks naar stderr
+def handle_exception(exc_type, exc_value, exc_traceback):
+    if issubclass(exc_type, KeyboardInterrupt):
+        sys.__excepthook__(exc_type, exc_value, exc_traceback)
+        return
+    print("🔥 UNCAUGHT EXCEPTION 🔥", file=sys.stderr)
+    traceback.print_exception(exc_type, exc_value, exc_traceback, file=sys.stderr)
+
+sys.excepthook = handle_exception
+
 
 os.environ["PYTHONUNBUFFERED"] = "1"
 from dotenv import load_dotenv
