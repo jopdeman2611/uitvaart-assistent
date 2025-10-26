@@ -3,6 +3,7 @@ load_dotenv()
 
 import os
 import logging
+import sys
 from fastapi import FastAPI, HTTPException, Header
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
@@ -10,8 +11,9 @@ from typing import List, Optional
 from google.cloud import storage
 from scripts.maak_presentatie import maak_presentatie_automatisch
 
-# ✅ Logging
+# ✅ Logging naar stdout zodat Cloud Run het logt!
 logging.basicConfig(
+    stream=sys.stdout,
     level=logging.DEBUG,
     format="%(asctime)s [%(levelname)s] %(message)s"
 )
@@ -19,8 +21,8 @@ logging.basicConfig(
 API_KEY = os.getenv("STREAMLIT_API_KEY")
 BUCKET_NAME = os.getenv("BUCKET_TEMPLATES")
 
-logging.debug(f"API_KEY: {API_KEY}")
-logging.debug(f"BUCKET_NAME: {BUCKET_NAME}")
+logging.debug(f"✅ gestart met BUCKET_TEMPLATES = {BUCKET_NAME}")
+logging.debug(f"✅ API_KEY loaded? {'✅' if API_KEY else '❌'}")
 
 app = FastAPI(title="Uitvaart Presentatie API ✅")
 
@@ -39,7 +41,7 @@ def root():
 
 
 def _sjabloon_pad_from_id(sjabloon_id: str) -> str:
-    logging.debug(f"START _sjabloon_pad_from_id({sjabloon_id})")
+    logging.debug(f"➡️ _sjabloon_pad_from_id({sjabloon_id})")
 
     mapping = {
         "Rustig": "SjabloonRustig.pptx",
@@ -48,70 +50,66 @@ def _sjabloon_pad_from_id(sjabloon_id: str) -> str:
     }
 
     if sjabloon_id not in mapping:
-        logging.error("Onbekend sjabloon!")
+        logging.error("❌ Onbekend sjabloon")
         raise HTTPException(status_code=400, detail="Onbekend sjabloon")
 
     file_name = mapping[sjabloon_id]
     blob_path = f"sjablonen/{file_name}"
     local_path = f"/tmp/{file_name}"
 
-    logging.debug(f"📌 Bucket: {BUCKET_NAME}")
-    logging.debug(f"📌 Blob path: {blob_path}")
+    if not BUCKET_NAME:
+        logging.error("❌ BUCKET_TEMPLATES ontbreekt!")
+        raise HTTPException(status_code=500, detail="Bucket ontbreekt")
+
+    logging.debug(f"🔎 Zoeken in bucket: {BUCKET_NAME}")
+    logging.debug(f"📁 Blob path: {blob_path}")
 
     client = storage.Client()
     bucket = client.bucket(BUCKET_NAME)
     blob = bucket.blob(blob_path)
 
-    # 👇 Debug blob attributes
-    logging.debug(f"Blob exists? {blob.exists()}")
-    try:
-        blob.reload()
-        logging.debug(f"Size: {blob.size}")
-        logging.debug(f"Updated: {blob.updated}")
-    except Exception as e:
-        logging.warning(f"Blob reload failed: {str(e)}")
+    exists = blob.exists()
+    logging.debug(f"📌 Blob exists? {exists}")
 
-    if not blob.exists():
+    if not exists:
+        logging.error("❌ Sjabloon niet gevonden in GCS!")
         raise HTTPException(status_code=404, detail=f"Sjabloon niet gevonden: {sjabloon_id}")
 
-    if not os.path.exists(local_path):
+    logging.debug("📥 Downloaden sjabloon...")
+    try:
         blob.download_to_filename(local_path)
-        logging.debug("✅ Download OK!")
+    except Exception as e:
+        logging.exception("❌ Download fout")
+        raise HTTPException(status_code=500, detail=str(e))
 
-    logging.debug(f"RETURN {local_path}")
-    return local_path
-   blob = bucket.blob(blob_path)
-
-    if not blob.exists():
-        raise HTTPException(status_code=404,
-                            detail=f"Sjabloon niet gevonden in bucket: {sjabloon_id}")
-
-    if not os.path.exists(local_path):
-        blob.download_to_filename(local_path)
-
+    logging.debug(f"✅ Presentatie sjabloon lokaal opgeslagen: {local_path}")
     return local_path
 
 
 @app.post("/generate")
 def generate(req: GenRequest, x_streamlit_key: str = Header(default="")):
+    logging.debug("🔐 API Key controleren...")
+
     if not API_KEY or x_streamlit_key != API_KEY:
+        logging.error("❌ Unauthorized request")
         raise HTTPException(status_code=401, detail="Unauthorized")
 
-    titel_datums = None
-    if req.geboortedatum and req.overlijdensdatum:
-        titel_datums = f"{req.geboortedatum} – {req.overlijdensdatum}"
+    titel_datums = f"{req.geboortedatum} – {req.overlijdensdatum}" \
+        if req.geboortedatum and req.overlijdensdatum else None
 
     sjabloon_pad = _sjabloon_pad_from_id(req.sjabloon)
 
     try:
+        logging.debug("🎬 PPT genereren gestart...")
         pptx_path = maak_presentatie_automatisch(
             sjabloon_pad=sjabloon_pad,
             base44_foto_urls=req.fotos,
             titel_naam=req.naam,
             titel_datums=titel_datums,
             ratio_mode="cover",
-            repeat_if_insufficient=True
+            repeat_if_insufficient=True,
         )
+        logging.debug("✅ PPT genereren voltooid!")
     except Exception as e:
         logging.exception("❌ Fout tijdens maken presentatie")
         raise HTTPException(status_code=500, detail=str(e))
