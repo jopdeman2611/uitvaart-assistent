@@ -1,6 +1,6 @@
+import os
 import logging
 import sys
-import os
 import traceback
 from dotenv import load_dotenv
 
@@ -77,10 +77,13 @@ def _sjabloon_pad_from_id(sjabloon_id: str) -> str:
     logging.debug(f"📄 Gekozen file_name = {file_name}")
 
     blob_path = f"sjablonen/{file_name}"
-    local_path = f"/tmp/{file_name}"
+    local_path = f"/tmp/sjablonen/{file_name}"
 
-    logging.debug(f"🗂 Blob pad in bucket: {blob_path}")
-    logging.debug(f"📌 Local path wordt: {local_path}")
+    # Zorg dat local folder bestaat ✅
+    os.makedirs("/tmp/sjablonen", exist_ok=True)
+
+    logging.debug(f"📂 Blob pad in bucket: {blob_path}")
+    logging.debug(f"📍 Local path wordt: {local_path}")
 
     client = storage.Client()
     bucket = client.bucket(BUCKET_NAME)
@@ -89,13 +92,14 @@ def _sjabloon_pad_from_id(sjabloon_id: str) -> str:
     logging.debug(f"🔍 Blob.exists() == {blob.exists()}")
 
     try:
-        blob.reload()
-        logging.debug(f"📏 Grootte blob: {blob.size}")
+       blob.reload()
+       logging.debug(f"📏 Grootte blob: {blob.size}")
     except Exception as e:
-        logging.error(f"⚠️ Blob reload fout: {e}")
+       logging.error(f"⚠️ Blob reload fout: {e}")
 
-    logging.debug(f"✅ Presentatie sjabloon lokaal opgeslagen: {local_path}")
-    return local_path
+logging.debug(f"✅ Presentatie sjabloon lokaal opgeslagen: {local_path}")
+return local_path
+
 
 
 @app.post("/generate")
