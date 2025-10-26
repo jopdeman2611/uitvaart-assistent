@@ -45,17 +45,16 @@ def _sjabloon_pad_from_id(sjabloon_id: str) -> str:
         raise HTTPException(status_code=500, detail="Bucket niet ingesteld")
 
     client = storage.Client()
-    bucket = client.bucket(BUCKET)
-    blob = bucket.blob(file_name)  # ✅ sjablonen staan in de root
+    bucket = client.bucket(BUCKET_NAME)
+
+    # ✅ Sjablonen zitten in subfolder 'sjablonen'
+    blob = bucket.blob(f"sjablonen/{file_name}")
 
     if not blob.exists():
-        raise HTTPException(
-            status_code=404, 
-            detail=f"Sjabloon niet gevonden: {file_name} in bucket {BUCKET}"
-        )
+        raise HTTPException(status_code=404, detail=f"Sjabloon niet gevonden: {sjabloon_id}")
 
     if not os.path.exists(local_path):
-        blob.download_to_filename(local_path)
+    blob.download_to_filename(local_path)
 
     return local_path
 
