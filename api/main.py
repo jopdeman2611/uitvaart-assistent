@@ -1,4 +1,4 @@
-from dotenv import load_dotenv
+from dotenv import load_dotenv 
 load_dotenv()
 
 import os
@@ -13,9 +13,6 @@ from scripts.maak_presentatie import maak_presentatie_automatisch
 # API Key
 API_KEY = os.getenv("STREAMLIT_API_KEY")
 
-# GCS Bucket with templates
-BUCKET = os.getenv("BUCKET_TEMPLATES")
-
 app = FastAPI(title="Uitvaart Presentatie API")
 
 
@@ -28,7 +25,6 @@ class GenRequest(BaseModel):
     slagboom: Optional[bool] = False
 
 
-
 def _sjabloon_pad_from_id(sjabloon_id: str) -> str:
     mapping = {
         "Rustig": "SjabloonRustig.pptx",
@@ -37,22 +33,24 @@ def _sjabloon_pad_from_id(sjabloon_id: str) -> str:
     }
 
     if sjabloon_id not in mapping:
-        raise HTTPException(status_code=400, detail="Onbekend sjabloon")
+        raise HTTPException(status_code=400, detail=f"Onbekend sjabloon '{sjabloon_id}'. Kies: {list(mapping.keys())}")
 
     file_name = mapping[sjabloon_id]
-    local_path = f"/tmp/{file_name}"  # Cloud Run allows writing to /tmp
+    local_path = f"/tmp/{file_name}"  # Cloud Run: veilige schrijfmap
 
-    if not BUCKET:
-        raise HTTPException(status_code=500, detail="Geen BUCKET_TEMPLATES ingesteld")
+    # ✅ Environment variable LAADT NU JUIST TIJDIG
+    BUCKET_NAME = os.getenv("BUCKET_TEMPLATES")
+    if not BUCKET_NAME:
+        raise HTTPException(status_code=500, detail="BUCKET_TEMPLATES ontbreekt als environment variable")
 
     client = storage.Client()
-    bucket = client.bucket(BUCKET)
+    bucket = client.bucket(BUCKET_NAME)
     blob = bucket.blob(f"sjablonen/{file_name}")
 
     if not blob.exists():
-        raise HTTPException(status_code=404, detail=f"Sjabloon niet gevonden: {sjabloon_id}")
+        raise HTTPException(status_code=404, detail=f"Sjabloonbestand ontbreekt in bucket: {sjabloon_id}")
 
-    # Download only if not already cached
+    # Download enkel wanneer nodig
     if not os.path.exists(local_path):
         blob.download_to_filename(local_path)
 
@@ -61,9 +59,9 @@ def _sjabloon_pad_from_id(sjabloon_id: str) -> str:
 
 @app.post("/generate")
 def generate(req: GenRequest, x_streamlit_key: str = Header(default="")):
-    # Auth check
+    # ✅ API Key check
     if not API_KEY or x_streamlit_key != API_KEY:
-        raise HTTPException(status_code=401, detail="Unauthorized")
+        raise HTTPException(status_code=401, detail="Unauthorized API key")
 
     titel_datums = None
     if req.geboortedatum and req.overlijdensdatum:
@@ -81,7 +79,7 @@ def generate(req: GenRequest, x_streamlit_key: str = Header(default="")):
             repeat_if_insufficient=True,
         )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"Presentatie genereren mislukte: {str(e)}")
 
     filename = "warme_uitvaart_presentatie.pptx"
     return FileResponse(
