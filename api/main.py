@@ -39,6 +39,8 @@ def root():
 
 
 def _sjabloon_pad_from_id(sjabloon_id: str) -> str:
+    logging.debug(f"START _sjabloon_pad_from_id({sjabloon_id})")
+
     mapping = {
         "Rustig": "SjabloonRustig.pptx",
         "Bloemrijk": "SjabloonBloemrijk.pptx",
@@ -46,18 +48,39 @@ def _sjabloon_pad_from_id(sjabloon_id: str) -> str:
     }
 
     if sjabloon_id not in mapping:
+        logging.error("Onbekend sjabloon!")
         raise HTTPException(status_code=400, detail="Onbekend sjabloon")
 
     file_name = mapping[sjabloon_id]
     blob_path = f"sjablonen/{file_name}"
     local_path = f"/tmp/{file_name}"
 
-    if not BUCKET_NAME:
-        raise HTTPException(status_code=500, detail="Bucket onbekend")
+    logging.debug(f"📌 Bucket: {BUCKET_NAME}")
+    logging.debug(f"📌 Blob path: {blob_path}")
 
     client = storage.Client()
     bucket = client.bucket(BUCKET_NAME)
     blob = bucket.blob(blob_path)
+
+    # 👇 Debug blob attributes
+    logging.debug(f"Blob exists? {blob.exists()}")
+    try:
+        blob.reload()
+        logging.debug(f"Size: {blob.size}")
+        logging.debug(f"Updated: {blob.updated}")
+    except Exception as e:
+        logging.warning(f"Blob reload failed: {str(e)}")
+
+    if not blob.exists():
+        raise HTTPException(status_code=404, detail=f"Sjabloon niet gevonden: {sjabloon_id}")
+
+    if not os.path.exists(local_path):
+        blob.download_to_filename(local_path)
+        logging.debug("✅ Download OK!")
+
+    logging.debug(f"RETURN {local_path}")
+    return local_path
+   blob = bucket.blob(blob_path)
 
     if not blob.exists():
         raise HTTPException(status_code=404,
