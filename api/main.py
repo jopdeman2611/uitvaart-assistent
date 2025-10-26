@@ -3,6 +3,7 @@ import logging
 import sys
 import traceback
 from dotenv import load_dotenv
+from fastapi.middleware.cors import CORSMiddleware
 
 os.environ["PYTHONUNBUFFERED"] = "1"
 load_dotenv()
@@ -44,6 +45,15 @@ logging.debug(f"✅ API_KEY loaded? {'✅' if API_KEY else '❌'}")
 
 app = FastAPI(title="Uitvaart Presentatie API ✅")
 
+# ✅ CORS toestaan (nodig voor Streamlit of externe clients)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 class GenRequest(BaseModel):
     naam: str
@@ -79,7 +89,7 @@ def _sjabloon_pad_from_id(sjabloon_id: str) -> str:
     blob_path = f"sjablonen/{file_name}"
     local_path = f"/tmp/sjablonen/{file_name}"
 
-    # Zorg dat local folder bestaat ✅
+    # ✅ Zorg dat local folder bestaat
     os.makedirs("/tmp/sjablonen", exist_ok=True)
 
     logging.debug(f"📂 Blob pad in bucket: {blob_path}")
@@ -91,14 +101,21 @@ def _sjabloon_pad_from_id(sjabloon_id: str) -> str:
 
     logging.debug(f"🔍 Blob.exists() == {blob.exists()}")
 
-    try:
-       blob.reload()
-       logging.debug(f"📏 Grootte blob: {blob.size}")
-    except Exception as e:
-       logging.error(f"⚠️ Blob reload fout: {e}")
+    if not blob.exists():
+        logging.error(f"❌ Sjabloon niet gevonden in bucket: {blob_path}")
+        raise HTTPException(status_code=404, detail="Sjabloon niet gevonden in bucket")
 
-logging.debug(f"✅ Presentatie sjabloon lokaal opgeslagen: {local_path}")
-return local_path
+    # ✅ Download het sjabloon
+    try:
+        blob.reload()
+        logging.debug(f"📏 Grootte blob: {blob.size}")
+        blob.download_to_filename(local_path)
+        logging.debug(f"✅ Sjabloon gedownload naar: {local_path}")
+    except Exception as e:
+        logging.error(f"❌ Download fout: {e}")
+        raise HTTPException(status_code=500, detail="Download fout sjabloon")
+
+    return local_path
 
 
 
