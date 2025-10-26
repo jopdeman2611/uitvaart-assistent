@@ -1,3 +1,4 @@
+os.environ["PYTHONUNBUFFERED"] = "1"
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -13,9 +14,10 @@ from scripts.maak_presentatie import maak_presentatie_automatisch
 
 # ✅ Logging naar stdout zodat Cloud Run het logt!
 logging.basicConfig(
-    stream=sys.stdout,
     level=logging.DEBUG,
-    format="%(asctime)s [%(levelname)s] %(message)s"
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[logging.StreamHandler(sys.stdout)],
+    force=True  # ✅ OVERRULE UVICORN LOGGING
 )
 
 API_KEY = os.getenv("STREAMLIT_API_KEY")
