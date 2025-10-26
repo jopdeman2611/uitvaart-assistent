@@ -11,7 +11,6 @@ import zipfile
 import tempfile
 import shutil
 import requests
-import streamlit as st
 
 from pptx import Presentation
 from pptx.enum.shapes import MSO_SHAPE_TYPE
@@ -280,18 +279,18 @@ def maak_presentatie_automatisch(
 
         vervang_placeholder_fotos(prs, fotopaden, ratio_mode=ratio_mode, repeat_if_insufficient=repeat_if_insufficient)
 
-        base_dir = os.path.dirname(__file__) if "__file__" in globals() else os.getcwd()
-        output_path = os.path.join(base_dir, uitvoer_pad)
-        prs.save(output_path)
+        OUTPUT_DIR = "/app/output"
+        os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-        print(f"✅ Presentatie opgeslagen als: {output_path}")
-        # Geen visuele melding met pad voor gebruiker
+        output_path = os.path.join(OUTPUT_DIR, uitvoer_pad)
+        prs.save(output_path)
 
         return output_path
 
+
     except Exception as e:
-        st.error(f"❌ Fout bij genereren of opslaan van de presentatie: {e}")
         print(f"❌ Fout bij genereren of opslaan van de presentatie: {e}")
+        raise
 
     finally:
         shutil.rmtree(tmp_dir, ignore_errors=True)

@@ -1,4 +1,8 @@
-streamlit
+fastapi
+uvicorn
 python-pptx
-boto3
+Pillow
+requests
 python-dotenv
+pydantic
+python-multipart
