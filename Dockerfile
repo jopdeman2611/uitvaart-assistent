@@ -14,8 +14,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-RUN mkdir -p /app/output
-
 ENV PORT=8080
 EXPOSE 8080
 
