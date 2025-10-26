@@ -20,4 +20,4 @@ RUN mkdir -p /app/output
 ENV PORT=8080
 EXPOSE 8080
 
-CMD ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8080"]
+CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8080", "--log-level", "debug", "--access-log"]
