@@ -17,7 +17,7 @@ logging.basicConfig(
 )
 
 # ✅ Uvicorn logs ook op debug zetten
-for logger_name in ["uvicorn", "uvicorn.error", "uvicorn.access"]:
+for logger_name in ["uvicorn", "uvicorn.error"]:
     logging.getLogger(logger_name).setLevel(logging.DEBUG)
 
 # ✅ Ongecatchte exceptions afdrukken
