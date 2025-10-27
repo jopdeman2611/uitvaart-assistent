@@ -93,6 +93,17 @@ class GeneratePresentationRequest(BaseModel):
 def root():
     return {"status": "✅ API actief", "service": "Presentatie generator"}
 
+def _fmt_date(s: Optional[str]) -> Optional[str]:
+    if not s:
+        return None
+    try:
+        dt = datetime.strptime(s, "%Y-%m-%d")
+        months = ["januari","februari","maart","april","mei","juni",
+                  "juli","augustus","september","oktober","november","december"]
+        return f"{dt.day} {months[dt.month-1]} {dt.year}"
+    except Exception:
+        return s
+
 
 def _sjabloon_pad_from_id(sjabloon_id: str) -> str:
     logging.debug(f"➡️ _sjabloon_pad_from_id gestart met: {sjabloon_id}")
@@ -194,9 +205,17 @@ def generate_presentation(req: GeneratePresentationRequest):
     sjabloon_blob.download_to_filename(local_template)
 
     # Titel + datums opbouwen
-    titel_datums = None
-    if req.date_of_birth and req.date_of_death:
-        titel_datums = f"{req.date_of_birth} – {req.date_of_death}"
+    dob_fmt = _fmt_date(req.date_of_birth)
+    dod_fmt = _fmt_date(req.date_of_death)
+
+    if dob_fmt and dod_fmt:
+        titel_datums = f"* {dob_fmt} – † {dod_fmt}"
+    elif dob_fmt:
+        titel_datums = f"* {dob_fmt}"
+    elif dod_fmt:
+        titel_datums = f"† {dod_fmt}"
+    else:
+        titel_datums = None
 
     try:
         logging.debug("🎬 PPT genereren gestart met sjabloon...")
