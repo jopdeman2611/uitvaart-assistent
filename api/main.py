@@ -218,7 +218,7 @@ def generate_presentation(req: GeneratePresentationRequest):
         titel_datums = None
 
 try:
-    logging.debug("🎞 PPT genereren gestart met sjabloon...")
+    logging.debug("🎬 PPT genereren gestart met sjabloon...")
 
     prs = Presentation(local_template)
     fotos = list(req.photos)
@@ -226,7 +226,6 @@ try:
 
     for slide_index, slide in enumerate(prs.slides):
         image_shapes = []
-
         for sh in slide.shapes:
             try:
                 if sh.is_placeholder and sh.placeholder_format.type in [3, 4]:
@@ -240,7 +239,6 @@ try:
         for placeholder in image_shapes:
             if foto_index >= len(fotos):
                 foto_index = 0
-
             try:
                 img_data = requests.get(fotos[foto_index]).content
                 foto_index += 1
@@ -258,18 +256,17 @@ except Exception as e:
     logging.exception("❌ Fout tijdens presentatie generatie")
     raise HTTPException(status_code=500, detail=str(e))
 
+# ✅ Upload + return zitten **binnen dezelfde functie**, maar **buiten** de try/except!
+bucket = client.bucket(req.output_bucket)
+blob_path = f"{req.collection}/{req.output_filename}"
+blob = bucket.blob(blob_path)
 
-    # ✅ Upload naar bucket
-    bucket = client.bucket(req.output_bucket)
-    blob_path = f"{req.collection}/{req.output_filename}"
-    blob = bucket.blob(blob_path)
+blob.upload_from_string(
+    data,
+    content_type="application/vnd.openxmlformats-officedocument.presentationml.presentation"
+)
 
-    blob.upload_from_string(
-        data,
-        content_type="application/vnd.openxmlformats-officedocument.presentationml.presentation"
-    )
+url = f"https://storage.googleapis.com/{req.output_bucket}/{blob_path}"
+logging.debug(f"✅ Downloadlink: {url}")
 
-    url = f"https://storage.googleapis.com/{req.output_bucket}/{blob_path}"
-    logging.debug(f"✅ Downloadlink: {url}")
-
-    return {"download_url": url}
+return {"download_url": url}
