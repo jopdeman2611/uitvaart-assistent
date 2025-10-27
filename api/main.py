@@ -62,6 +62,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ✅ BESTAANDE CLASS VOOR STREAMLIT ENDPOINT
+class GenRequest(BaseModel):
+    naam: str
+    sjabloon: str
+    fotos: List[str] = []
+    geboortedatum: Optional[str] = None
+    overlijdensdatum: Optional[str] = None
+
 
 # ✅ NIEUWE CLASS VOOR BASE44 PRESENTATIE
 class GeneratePresentationRequest(BaseModel):
