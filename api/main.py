@@ -220,8 +220,8 @@ def generate_presentation(req: GeneratePresentationRequest):
 try:
     logging.debug("🎬 PPT genereren gestart met sjabloon...")
 
-    prs = Presentation(local_template)  # Open het sjabloon
-    fotos = list(req.photos)  # Base44-volgorde respecteren
+    prs = Presentation(local_template)
+    fotos = list(req.photos)
     foto_index = 0
 
     for slide_index, slide in enumerate(prs.slides):
@@ -235,16 +235,12 @@ try:
             continue
 
         for placeholder in image_shapes:
-            if len(fotos) == 0:
-                break
-
             if foto_index >= len(fotos):
                 foto_index = 0
 
-            img_data = requests.get(fotos[foto_index]).content
-            foto_index += 1
-
             try:
+                img_data = requests.get(fotos[foto_index]).content
+                foto_index += 1
                 placeholder.insert_picture(BytesIO(img_data))
             except Exception as e:
                 logging.error(f"❌ Foto kon niet worden geplaatst: {e}")
@@ -255,22 +251,21 @@ try:
     data = buf.getvalue()
     buf.close()
 
-    except Exception as e:
-        logging.exception("❌ Fout tijdens presentatie generatie")
-        raise HTTPException(status_code=500, detail=str(e))
+except Exception as e:
+    logging.exception("❌ Fout tijdens presentatie generatie")
+    raise HTTPException(status_code=500, detail=str(e))
 
-    # Upload naar bucket
-    bucket = client.bucket(req.output_bucket)
+# ✅ Upload naar bucket (buiten try/except)
+bucket = client.bucket(req.output_bucket)
+blob_path = f"{req.collection}/{req.output_filename}"
+blob = bucket.blob(blob_path)
 
-    blob_path = f"{req.collection}/{req.output_filename}"
-    blob = bucket.blob(blob_path)
+blob.upload_from_string(
+    data,
+    content_type="application/vnd.openxmlformats-officedocument.presentationml.presentation"
+)
 
-    blob.upload_from_string(
-        data,
-        content_type="application/vnd.openxmlformats-officedocument.presentationml.presentation"
-    )
+url = f"https://storage.googleapis.com/{req.output_bucket}/{blob_path}"
+logging.debug(f"✅ Downloadlink: {url}")
 
-    url = f"https://storage.googleapis.com/{req.output_bucket}/{blob_path}"
-    logging.debug(f"✅ Downloadlink: {url}")
-
-    return {"download_url": url}
+return {"download_url": url}
