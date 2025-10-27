@@ -5,6 +5,7 @@ import sys
 import traceback
 from dotenv import load_dotenv
 from fastapi.middleware.cors import CORSMiddleware
+from pptx.enum.shapes import PP_PLACEHOLDER
 
 os.environ["PYTHONUNBUFFERED"] = "1"
 load_dotenv()
