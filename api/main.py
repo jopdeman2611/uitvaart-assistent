@@ -261,11 +261,10 @@ try:
 
     # Upload naar bucket
     bucket = client.bucket(req.output_bucket)
-    with open(pptx_path, "rb") as f:
-        data = f.read()
 
     blob_path = f"{req.collection}/{req.output_filename}"
     blob = bucket.blob(blob_path)
+
     blob.upload_from_string(
         data,
         content_type="application/vnd.openxmlformats-officedocument.presentationml.presentation"
@@ -273,4 +272,5 @@ try:
 
     url = f"https://storage.googleapis.com/{req.output_bucket}/{blob_path}"
     logging.debug(f"✅ Downloadlink: {url}")
+
     return {"download_url": url}
