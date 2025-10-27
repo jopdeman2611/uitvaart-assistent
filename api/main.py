@@ -1,3 +1,4 @@
+import re
 import os
 import logging
 import sys
@@ -232,31 +233,41 @@ def generate_presentation(req: GeneratePresentationRequest):
         fotos = list(req.photos)
         foto_index = 0
 
-        from pptx.enum.shapes import PP_PLACEHOLDER
+import re
+from pptx.enum.shapes import PP_PLACEHOLDER
 
-        for slide in prs.slides:
-            image_shapes = []
-            for sh in slide.shapes:
-                try:
-                    if sh.is_placeholder and sh.placeholder_format.type == PP_PLACEHOLDER.PICTURE:
-                        image_shapes.append(sh)
-                except Exception:
-                    continue
+for slide in prs.slides:
+    image_shapes = []
+    for sh in slide.shapes:
+        try:
+            if sh.is_placeholder and sh.placeholder_format.type == PP_PLACEHOLDER.PICTURE:
+                image_shapes.append(sh)
+        except Exception:
+            continue
 
-            if not image_shapes:
-                continue
+    # Sorteer placeholders slim op naam of positie
+    def _ph_order_key(sh):
+        name = getattr(sh, "name", "") or ""
+        m = re.search(r"foto\s*0*(\d+)", name, re.IGNORECASE)
+        if m:
+            return (0, int(m.group(1)))
+        return (1, int(sh.top), int(sh.left))
 
-            for placeholder in image_shapes:
-                if foto_index >= len(fotos):
-                    foto_index = 0
+    image_shapes.sort(key=_ph_order_key)
 
-                try:
-                    img_data = requests.get(fotos[foto_index]).content
-                    foto_index += 1
-                    placeholder.insert_picture(BytesIO(img_data))
-                except Exception as e:
-                    logging.error(f"❌ Foto kon niet worden geplaatst: {e}")
-                    continue
+    if not image_shapes:
+        continue
+
+    for placeholder in image_shapes:
+        if foto_index >= len(fotos):
+            foto_index = 0
+        try:
+            img_data = requests.get(fotos[foto_index]).content
+            placeholder.insert_picture(BytesIO(img_data))
+            foto_index += 1
+        except Exception as e:
+            logging.error(f"❌ Foto kon niet worden geplaatst: {e}")
+            continue
 
         # ✅ Buffer opslaan vóór upload
         buf = BytesIO()
