@@ -217,43 +217,47 @@ def generate_presentation(req: GeneratePresentationRequest):
     else:
         titel_datums = None
 
-    try:
-        logging.debug("🎬 PPT genereren gestart met sjabloon...")
+try:
+    logging.debug("🎞 PPT genereren gestart met sjabloon...")
 
-        prs = Presentation(local_template)
-        fotos = list(req.photos)
-        foto_index = 0
+    prs = Presentation(local_template)
+    fotos = list(req.photos)
+    foto_index = 0
 
-        for slide_index, slide in enumerate(prs.slides):
-            image_shapes = [
-                sh for sh in slide.shapes
-                if hasattr(sh, "placeholder_format")
-                and sh.placeholder_format.type in [3, 4]
-            ]
+    for slide_index, slide in enumerate(prs.slides):
+        image_shapes = []
 
-            if not image_shapes:
+        for sh in slide.shapes:
+            try:
+                if sh.is_placeholder and sh.placeholder_format.type in [3, 4]:
+                    image_shapes.append(sh)
+            except:
                 continue
 
-            for placeholder in image_shapes:
-                if foto_index >= len(fotos):
-                    foto_index = 0
+        if not image_shapes:
+            continue
 
-                try:
-                    img_data = requests.get(fotos[foto_index]).content
-                    foto_index += 1
-                    placeholder.insert_picture(BytesIO(img_data))
-                except Exception as e:
-                    logging.error(f"❌ Foto kon niet worden geplaatst: {e}")
-                    continue
+        for placeholder in image_shapes:
+            if foto_index >= len(fotos):
+                foto_index = 0
 
-        buf = BytesIO()
-        prs.save(buf)
-        data = buf.getvalue()
-        buf.close()
+            try:
+                img_data = requests.get(fotos[foto_index]).content
+                foto_index += 1
+                placeholder.insert_picture(BytesIO(img_data))
+            except Exception as e:
+                logging.error(f"❌ Foto kon niet worden geplaatst: {e}")
+                continue
 
-    except Exception as e:
-        logging.exception("❌ Fout tijdens presentatie generatie")
-        raise HTTPException(status_code=500, detail=str(e))
+    buf = BytesIO()
+    prs.save(buf)
+    data = buf.getvalue()
+    buf.close()
+
+except Exception as e:
+    logging.exception("❌ Fout tijdens presentatie generatie")
+    raise HTTPException(status_code=500, detail=str(e))
+
 
     # ✅ Upload naar bucket
     bucket = client.bucket(req.output_bucket)
