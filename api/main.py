@@ -268,9 +268,12 @@ def generate_presentation(req: GeneratePresentationRequest):
 
     # ✅ Upload naar bucket
     bucket = client.bucket(req.output_bucket)
-    blob_path = f"{req.collection}/{req.output_filename}"
-    blob = bucket.blob(blob_path)
+    
+    import uuid
+    unique_id = uuid.uuid4().hex[:8]
+    blob_path = f"{req.collection}/{unique_id}_{req.output_filename}"
 
+    blob = bucket.blob(blob_path)
     blob.upload_from_string(
         data,
         content_type="application/vnd.openxmlformats-officedocument.presentationml.presentation"
