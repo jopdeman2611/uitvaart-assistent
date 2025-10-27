@@ -217,17 +217,44 @@ def generate_presentation(req: GeneratePresentationRequest):
     else:
         titel_datums = None
 
-    try:
-        logging.debug("🎬 PPT genereren gestart met sjabloon...")
-        pptx_path = maak_presentatie_automatisch(
-            sjabloon_pad=local_template,
-            base44_foto_urls=req.photos,
-            titel_naam=req.title,
-            titel_datums=titel_datums,
-            ratio_mode="cover",
-            repeat_if_insufficient=True,
-        )
-        logging.debug("✅ PPT genereren voltooid!")
+try:
+    logging.debug("🎬 PPT genereren gestart met sjabloon...")
+
+    prs = Presentation(local_template)  # Open het sjabloon
+    fotos = list(req.photos)  # Base44-volgorde respecteren
+    foto_index = 0
+
+    for slide_index, slide in enumerate(prs.slides):
+        image_shapes = [
+            sh for sh in slide.shapes
+            if hasattr(sh, "placeholder_format")
+            and sh.placeholder_format.type in [3, 4]
+        ]
+
+        if not image_shapes:
+            continue
+
+        for placeholder in image_shapes:
+            if len(fotos) == 0:
+                break
+
+            if foto_index >= len(fotos):
+                foto_index = 0
+
+            img_data = requests.get(fotos[foto_index]).content
+            foto_index += 1
+
+            try:
+                placeholder.insert_picture(BytesIO(img_data))
+            except Exception as e:
+                logging.error(f"❌ Foto kon niet worden geplaatst: {e}")
+                continue
+
+    buf = BytesIO()
+    prs.save(buf)
+    data = buf.getvalue()
+    buf.close()
+
     except Exception as e:
         logging.exception("❌ Fout tijdens presentatie generatie")
         raise HTTPException(status_code=500, detail=str(e))
