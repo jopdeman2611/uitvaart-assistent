@@ -35,6 +35,14 @@ from pydantic import BaseModel
 from typing import List, Optional
 from google.cloud import storage
 from scripts.maak_presentatie import maak_presentatie_automatisch
+from pydantic import BaseModel, validator
+import requests
+from io import BytesIO
+import hashlib
+from pptx import Presentation
+from pptx.util import Inches, Pt
+from pptx.enum.text import PP_ALIGN
+from pptx.dml.color import RGBColor
 
 
 API_KEY = os.getenv("STREAMLIT_API_KEY")
@@ -55,12 +63,21 @@ app.add_middleware(
 )
 
 
-class GenRequest(BaseModel):
-    naam: str
-    sjabloon: str
-    fotos: List[str] = []
-    geboortedatum: Optional[str] = None
-    overlijdensdatum: Optional[str] = None
+# ✅ NIEUWE CLASS VOOR BASE44 PRESENTATIE
+class GeneratePresentationRequest(BaseModel):
+    collection: str
+    title: Optional[str] = None
+    date_of_birth: Optional[str] = None
+    date_of_death: Optional[str] = None
+    photos: List[str]
+    output_bucket: str
+    output_filename: str
+
+    @validator("photos")
+    def photos_not_empty(cls, v):
+        if not isinstance(v, list) or len(v) == 0:
+            raise ValueError("Minimaal één foto verplicht")
+        return v
 
 
 @app.get("/")
@@ -151,3 +168,52 @@ def generate(req: GenRequest, x_streamlit_key: str = Header(default="")):
         media_type="application/vnd.openxmlformats-officedocument.presentationml.presentation",
         filename="warme_uitvaart_presentatie.pptx",
     )
+
+# ✅ Nieuwe endpoint voor Base44 integratie
+@app.post("/v1/generate-presentation")
+def generate_presentation(req: GeneratePresentationRequest):
+    logging.debug(f"🚀 Base44 generate-presentation req: {req}")
+
+    prs = Presentation()
+    slide = prs.slides.add_slide(prs.slide_layouts[6])
+
+    if req.title:
+        title_box = slide.shapes.add_textbox(Inches(1), Inches(2), Inches(8), Inches(1))
+        tf = title_box.text_frame
+        p = tf.paragraphs[0]
+        p.text = req.title
+        p.font.size = Pt(44)
+        p.font.bold = True
+        p.alignment = PP_ALIGN.CENTER
+
+    # ✅ Foto slides in aangeleverde volgorde (Base44 doet de sortering)
+    for url in req.photos:
+        try:
+            img = requests.get(url).content
+            slide = prs.slides.add_slide(prs.slide_layouts[6])
+            slide.shapes.add_picture(BytesIO(img), Inches(0), Inches(0),
+                                     width=Inches(10), height=Inches(7.5))
+        except Exception as e:
+            logging.error(f"❌ Fout bij foto ophalen: {e}")
+            continue
+
+    buf = BytesIO()
+    prs.save(buf)
+    data = buf.getvalue()
+    buf.close()
+
+    h12 = hashlib.sha256(data).hexdigest()[:12]
+    blob_path = f"{req.collection}/{h12}_{req.output_filename}"
+
+    client = storage.Client()
+    bucket = client.bucket(req.output_bucket)
+    blob = bucket.blob(blob_path)
+    blob.upload_from_string(data,
+        content_type="application/vnd.openxmlformats-officedocument.presentationml.presentation"
+    )
+
+    url = f"https://storage.googleapis.com/{req.output_bucket}/{blob_path}"
+    logging.debug(f"✅ Downloadlink: {url}")
+
+    return {"download_url": url}
+
