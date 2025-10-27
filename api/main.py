@@ -194,7 +194,7 @@ def generate(req: GenRequest, x_streamlit_key: str = Header(default="")):
 def generate_presentation(req: GeneratePresentationRequest):
     logging.debug(f"🚀 Base44 generate-presentation req: {req}")
 
-    # Kies sjabloon (later via Base44 aanpasbaar)
+    # Kies sjabloon
     template_file = req.template_file or "SjabloonRustig.pptx"
 
     # Download sjabloon vanuit GCS
@@ -204,7 +204,7 @@ def generate_presentation(req: GeneratePresentationRequest):
     local_template = f"/tmp/{template_file}"
     sjabloon_blob.download_to_filename(local_template)
 
-    # Titel + datums opbouwen
+    # Titel + datums formatteren
     dob_fmt = _fmt_date(req.date_of_birth)
     dod_fmt = _fmt_date(req.date_of_death)
 
@@ -217,56 +217,58 @@ def generate_presentation(req: GeneratePresentationRequest):
     else:
         titel_datums = None
 
-try:
-    logging.debug("🎬 PPT genereren gestart met sjabloon...")
+    try:
+        logging.debug("🎬 PPT genereren gestart met sjabloon...")
 
-    prs = Presentation(local_template)
-    fotos = list(req.photos)
-    foto_index = 0
+        prs = Presentation(local_template)
+        fotos = list(req.photos)
+        foto_index = 0
 
-    for slide_index, slide in enumerate(prs.slides):
-        image_shapes = []
-        for sh in slide.shapes:
-            try:
-                if sh.is_placeholder and sh.placeholder_format.type in [3, 4]:
-                    image_shapes.append(sh)
-            except:
+        for slide in prs.slides:
+            image_shapes = []
+            for sh in slide.shapes:
+                try:
+                    if sh.is_placeholder and sh.placeholder_format.type in [3, 4]:
+                        image_shapes.append(sh)
+                except:
+                    continue
+
+            if not image_shapes:
                 continue
 
-        if not image_shapes:
-            continue
+            for placeholder in image_shapes:
+                if foto_index >= len(fotos):
+                    foto_index = 0
 
-        for placeholder in image_shapes:
-            if foto_index >= len(fotos):
-                foto_index = 0
-            try:
-                img_data = requests.get(fotos[foto_index]).content
-                foto_index += 1
-                placeholder.insert_picture(BytesIO(img_data))
-            except Exception as e:
-                logging.error(f"❌ Foto kon niet worden geplaatst: {e}")
-                continue
+                try:
+                    img_data = requests.get(fotos[foto_index]).content
+                    foto_index += 1
+                    placeholder.insert_picture(BytesIO(img_data))
+                except Exception as e:
+                    logging.error(f"❌ Foto kon niet worden geplaatst: {e}")
+                    continue
 
-    buf = BytesIO()
-    prs.save(buf)
-    data = buf.getvalue()
-    buf.close()
+        # ✅ Buffer opslaan vóór upload
+        buf = BytesIO()
+        prs.save(buf)
+        data = buf.getvalue()
+        buf.close()
 
-except Exception as e:
-    logging.exception("❌ Fout tijdens presentatie generatie")
-    raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e:
+        logging.exception("❌ Fout tijdens presentatie generatie")
+        raise HTTPException(status_code=500, detail=str(e))
 
-# ✅ Upload + return zitten **binnen dezelfde functie**, maar **buiten** de try/except!
-bucket = client.bucket(req.output_bucket)
-blob_path = f"{req.collection}/{req.output_filename}"
-blob = bucket.blob(blob_path)
+    # ✅ Upload naar bucket
+    bucket = client.bucket(req.output_bucket)
+    blob_path = f"{req.collection}/{req.output_filename}"
+    blob = bucket.blob(blob_path)
 
-blob.upload_from_string(
-    data,
-    content_type="application/vnd.openxmlformats-officedocument.presentationml.presentation"
-)
+    blob.upload_from_string(
+        data,
+        content_type="application/vnd.openxmlformats-officedocument.presentationml.presentation"
+    )
 
-url = f"https://storage.googleapis.com/{req.output_bucket}/{blob_path}"
-logging.debug(f"✅ Downloadlink: {url}")
+    url = f"https://storage.googleapis.com/{req.output_bucket}/{blob_path}"
+    logging.debug(f"✅ Downloadlink: {url}")
 
-return {"download_url": url}
+    return {"download_url": url}
