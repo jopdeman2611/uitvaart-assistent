@@ -80,6 +80,7 @@ class GeneratePresentationRequest(BaseModel):
     photos: List[str]
     output_bucket: str
     output_filename: str
+    template_file: Optional[str] = None
 
     @validator("photos")
     def photos_not_empty(cls, v):
