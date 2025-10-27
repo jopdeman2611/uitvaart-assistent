@@ -201,7 +201,15 @@ def generate_presentation(req: GeneratePresentationRequest):
     client = storage.Client()
     sjabloon_bucket = client.bucket("warmeuitvaartassistent-sjablonen")
     sjabloon_blob = sjabloon_bucket.blob(f"sjablonen/{template_file}")
-    local_template = f"/tmp/{template_file}"
+    local_template = f"/tmp/sjablonen/{template_file}"
+    os.makedirs("/tmp/sjablonen", exist_ok=True)  # Zorg dat map bestaat
+
+    # Verwijder lokaal sjabloon als het nog in /tmp ligt
+    if os.path.exists(local_template):
+    os.remove(local_template)
+
+    # Forceer meest recente versie ophalen uit GCS
+    sjabloon_blob.reload()
     sjabloon_blob.download_to_filename(local_template)
 
     # Titel + datums formatteren
