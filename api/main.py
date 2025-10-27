@@ -182,46 +182,48 @@ def generate(req: GenRequest, x_streamlit_key: str = Header(default="")):
 def generate_presentation(req: GeneratePresentationRequest):
     logging.debug(f"🚀 Base44 generate-presentation req: {req}")
 
-    prs = Presentation()
-    slide = prs.slides.add_slide(prs.slide_layouts[6])
+    # Kies sjabloon (later via Base44 aanpasbaar)
+    template_file = req.template_file or "SjabloonRustig.pptx"
 
-    if req.title:
-        title_box = slide.shapes.add_textbox(Inches(1), Inches(2), Inches(8), Inches(1))
-        tf = title_box.text_frame
-        p = tf.paragraphs[0]
-        p.text = req.title
-        p.font.size = Pt(44)
-        p.font.bold = True
-        p.alignment = PP_ALIGN.CENTER
-
-    # ✅ Foto slides in aangeleverde volgorde (Base44 doet de sortering)
-    for url in req.photos:
-        try:
-            img = requests.get(url).content
-            slide = prs.slides.add_slide(prs.slide_layouts[6])
-            slide.shapes.add_picture(BytesIO(img), Inches(0), Inches(0),
-                                     width=Inches(10), height=Inches(7.5))
-        except Exception as e:
-            logging.error(f"❌ Fout bij foto ophalen: {e}")
-            continue
-
-    buf = BytesIO()
-    prs.save(buf)
-    data = buf.getvalue()
-    buf.close()
-
-    h12 = hashlib.sha256(data).hexdigest()[:12]
-    blob_path = f"{req.collection}/{h12}_{req.output_filename}"
-
+    # Download sjabloon vanuit GCS
     client = storage.Client()
+    sjabloon_bucket = client.bucket("warmeuitvaartassistent-sjablonen")
+    sjabloon_blob = sjabloon_bucket.blob(f"sjablonen/{template_file}")
+    local_template = f"/tmp/{template_file}"
+    sjabloon_blob.download_to_filename(local_template)
+
+    # Titel + datums opbouwen
+    titel_datums = None
+    if req.date_of_birth and req.date_of_death:
+        titel_datums = f"{req.date_of_birth} – {req.date_of_death}"
+
+    try:
+        logging.debug("🎬 PPT genereren gestart met sjabloon...")
+        pptx_path = maak_presentatie_automatisch(
+            sjabloon_pad=local_template,
+            base44_foto_urls=req.photos,
+            titel_naam=req.title,
+            titel_datums=titel_datums,
+            ratio_mode="cover",
+            repeat_if_insufficient=True,
+        )
+        logging.debug("✅ PPT genereren voltooid!")
+    except Exception as e:
+        logging.exception("❌ Fout tijdens presentatie generatie")
+        raise HTTPException(status_code=500, detail=str(e))
+
+    # Upload naar bucket
     bucket = client.bucket(req.output_bucket)
+    with open(pptx_path, "rb") as f:
+        data = f.read()
+
+    blob_path = f"{req.collection}/{req.output_filename}"
     blob = bucket.blob(blob_path)
-    blob.upload_from_string(data,
+    blob.upload_from_string(
+        data,
         content_type="application/vnd.openxmlformats-officedocument.presentationml.presentation"
     )
 
     url = f"https://storage.googleapis.com/{req.output_bucket}/{blob_path}"
     logging.debug(f"✅ Downloadlink: {url}")
-
     return {"download_url": url}
-
