@@ -95,7 +95,7 @@ def _crop_to_ratio(img: Image.Image, target_w_emu: Emu, target_h_emu: Emu) -> Im
 # Placeholder-detectie en vervanging
 # ---------------------------
 
-_PLACEHOLDER_RE = re.compile(r"^foto_(\d+)$", re.IGNORECASE)
+_PLACEHOLDER_RE = re.compile(r"^foto[_\-]?(\d+)$", re.IGNORECASE)
 
 
 def _iter_all_shapes_recursive(container):
