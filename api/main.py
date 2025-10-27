@@ -217,55 +217,55 @@ def generate_presentation(req: GeneratePresentationRequest):
     else:
         titel_datums = None
 
-try:
-    logging.debug("🎬 PPT genereren gestart met sjabloon...")
+    try:
+        logging.debug("🎬 PPT genereren gestart met sjabloon...")
 
-    prs = Presentation(local_template)
-    fotos = list(req.photos)
-    foto_index = 0
+        prs = Presentation(local_template)
+        fotos = list(req.photos)
+        foto_index = 0
 
-    for slide_index, slide in enumerate(prs.slides):
-        image_shapes = [
-            sh for sh in slide.shapes
-            if hasattr(sh, "placeholder_format")
-            and sh.placeholder_format.type in [3, 4]
-        ]
+        for slide_index, slide in enumerate(prs.slides):
+            image_shapes = [
+                sh for sh in slide.shapes
+                if hasattr(sh, "placeholder_format")
+                and sh.placeholder_format.type in [3, 4]
+            ]
 
-        if not image_shapes:
-            continue
-
-        for placeholder in image_shapes:
-            if foto_index >= len(fotos):
-                foto_index = 0
-
-            try:
-                img_data = requests.get(fotos[foto_index]).content
-                foto_index += 1
-                placeholder.insert_picture(BytesIO(img_data))
-            except Exception as e:
-                logging.error(f"❌ Foto kon niet worden geplaatst: {e}")
+            if not image_shapes:
                 continue
 
-    buf = BytesIO()
-    prs.save(buf)
-    data = buf.getvalue()
-    buf.close()
+            for placeholder in image_shapes:
+                if foto_index >= len(fotos):
+                    foto_index = 0
 
-except Exception as e:
-    logging.exception("❌ Fout tijdens presentatie generatie")
-    raise HTTPException(status_code=500, detail=str(e))
+                try:
+                    img_data = requests.get(fotos[foto_index]).content
+                    foto_index += 1
+                    placeholder.insert_picture(BytesIO(img_data))
+                except Exception as e:
+                    logging.error(f"❌ Foto kon niet worden geplaatst: {e}")
+                    continue
 
-# ✅ Upload naar bucket (buiten try/except)
-bucket = client.bucket(req.output_bucket)
-blob_path = f"{req.collection}/{req.output_filename}"
-blob = bucket.blob(blob_path)
+        buf = BytesIO()
+        prs.save(buf)
+        data = buf.getvalue()
+        buf.close()
 
-blob.upload_from_string(
-    data,
-    content_type="application/vnd.openxmlformats-officedocument.presentationml.presentation"
-)
+    except Exception as e:
+        logging.exception("❌ Fout tijdens presentatie generatie")
+        raise HTTPException(status_code=500, detail=str(e))
 
-url = f"https://storage.googleapis.com/{req.output_bucket}/{blob_path}"
-logging.debug(f"✅ Downloadlink: {url}")
+    # ✅ Upload naar bucket
+    bucket = client.bucket(req.output_bucket)
+    blob_path = f"{req.collection}/{req.output_filename}"
+    blob = bucket.blob(blob_path)
 
-return {"download_url": url}
+    blob.upload_from_string(
+        data,
+        content_type="application/vnd.openxmlformats-officedocument.presentationml.presentation"
+    )
+
+    url = f"https://storage.googleapis.com/{req.output_bucket}/{blob_path}"
+    logging.debug(f"✅ Downloadlink: {url}")
+
+    return {"download_url": url}
