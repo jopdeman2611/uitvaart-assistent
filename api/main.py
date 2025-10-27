@@ -206,7 +206,7 @@ def generate_presentation(req: GeneratePresentationRequest):
 
     # Verwijder lokaal sjabloon als het nog in /tmp ligt
     if os.path.exists(local_template):
-    os.remove(local_template)
+        os.remove(local_template)
 
     # Forceer meest recente versie ophalen uit GCS
     sjabloon_blob.reload()
