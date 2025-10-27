@@ -233,7 +233,6 @@ def generate_presentation(req: GeneratePresentationRequest):
         fotos = list(req.photos)
         foto_index = 0
 
-import re
 from pptx.enum.shapes import PP_PLACEHOLDER
 
 for slide in prs.slides:
