@@ -232,13 +232,14 @@ def generate_presentation(req: GeneratePresentationRequest):
         fotos = list(req.photos)
         foto_index = 0
 
+        from pptx.enum.placeholder import PP_PLACEHOLDER
         for slide in prs.slides:
             image_shapes = []
             for sh in slide.shapes:
                 try:
-                    if sh.is_placeholder and sh.placeholder_format.type in [3, 4]:
+                    if sh.is_placeholder and sh.placeholder_format.type == PP_PLACEHOLDER.PICTURE:
                         image_shapes.append(sh)
-                except:
+                except Exception:
                     continue
 
             if not image_shapes:
