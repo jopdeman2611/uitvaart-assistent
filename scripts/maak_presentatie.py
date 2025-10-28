@@ -97,7 +97,6 @@ def _crop_to_ratio(img: Image.Image, target_w_emu: Emu, target_h_emu: Emu) -> Im
 
 _PLACEHOLDER_RE = re.compile(r"^foto[_\-]?(\d+)$", re.IGNORECASE)
 
-
 def _iter_all_shapes_recursive(container):
     """Itereer alle shapes, inclusief groepen."""
     for sh in container.shapes:
